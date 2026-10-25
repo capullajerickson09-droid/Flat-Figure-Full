@@ -1463,12 +1463,10 @@
     }
     x.restore();
   }
-  // brain (side view, front to the LEFT), FLAT SHAPES ONLY, NO OUTLINE: the silhouette is a cloud of circles
-  // (BRAIN_DOTS, gaps filled by a core ellipse); inside it the lobes are smooth flat blobs in related tones (front lobe
-  // pink, top mauve, back lilac, bottom lobe lavender), the folds are wavy rounded bands a shade lighter or darker, plus a
-  // few soft highlight ovals; a banded cerebellum and a rounded stem underneath. No line strokes anywhere.
+  // brain (side view, front to the LEFT): a cloud of overlapping FLAT circles, pink at the front, lilac at the back and
+  // along the bottom lobe, no fold lines and no shading; one thin plum edge around the whole shape; a rounded pink stem.
   // Drawn once at 360 px and cached; f = -1 faces right. Parts in units of s (centre 0,0): front ~(-0.5,-0.3),
-  // top ~(0.15,-0.45), back ~(0.62,-0.1), bottom lobe ~(0.15,0.2), cerebellum ~(0.37,0.38), stem ~(0.2,0.55).
+  // top ~(0,-0.5), back ~(0.62,-0.1), bottom lobe ~(0.05,0.17), cerebellum ~(0.37,0.37), stem ~(0.2,0.55).
   const BRAIN_DOTS = [
       [0.369, 0.369, 0.170, '#d58cbd'],
       [0.057, 0.327, 0.091, '#e299c9'],
@@ -1491,31 +1489,12 @@
   let BRAINC = null;
   function brainArt(S) {
     const c = document.createElement('canvas'); c.width = c.height = Math.ceil(S * 2.2); const g = c.getContext('2d'); g.translate(c.width / 2, c.height / 2); g.scale(S, S);
-    const rg = H.rng(23);
-    const blob = (P) => { const p = new Path2D(), n = P.length; p.moveTo(P[0][0], P[0][1]); // smooth closed shape through the points (Catmull-Rom)
-      for (let i = 0; i < n; i++) { const a = P[(i - 1 + n) % n], b0 = P[i], c0 = P[(i + 1) % n], d0 = P[(i + 2) % n]; p.bezierCurveTo(b0[0] + (c0[0] - a[0]) / 6, b0[1] + (c0[1] - a[1]) / 6, c0[0] - (d0[0] - b0[0]) / 6, c0[1] - (d0[1] - b0[1]) / 6, c0[0], c0[1]); } p.closePath(); return p; };
-    const band = (pts, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length - 1; i++) g.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2); g.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]); g.stroke(); }; // a filled rounded band (a shape, no outline)
-    const wave = (x0, y0, len, ang, amp, k) => { const P = []; for (let i = 0; i <= k; i++) { const u = i / k; P.push([x0 + Math.cos(ang) * len * u - Math.sin(ang) * Math.sin(u * Math.PI * 2.2 + x0 * 9) * amp, y0 + Math.sin(ang) * len * u + Math.cos(ang) * Math.sin(u * Math.PI * 2.2 + x0 * 9) * amp]); } return P; };
-    const folds = (path, base, n, box, ang) => { g.save(); g.clip(path); // folds: lighter and darker wavy bands + highlight ovals, kept inside the lobe
-      for (let i = 0; i < n; i++) { const x0 = rg.range(box[0], box[2]), y0 = rg.range(box[1], box[3]), a0 = ang + rg.range(-0.5, 0.5), L = rg.range(0.22, 0.38);
-        band(wave(x0, y0 + 0.04, L, a0, 0.035, 12), 0.065, shade(base, -0.12)); band(wave(x0, y0, L, a0, 0.035, 12), 0.058, shade(base, 0.24)); }
-      g.fillStyle = 'rgba(255,240,248,0.55)'; for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(rg.range(box[0], box[2]), rg.range(box[1], (box[1] + box[3]) / 2), 0.05, 0.022, rg.range(-0.6, 0.2), 0, TAU); g.fill(); }
-      g.restore(); };
-    // stem and cerebellum (behind the cerebrum)
-    band([[0.12, 0.34], [0.19, 0.47], [0.26, 0.6]], 0.12, '#e7a0cc'); band([[0.15, 0.4], [0.22, 0.56]], 0.035, '#f2bddd');
-    const cb = new Path2D(); cb.ellipse(0.42, 0.4, 0.24, 0.16, 0.08, 0, TAU); g.fillStyle = '#d58cbd'; g.fill(cb);
-    g.save(); g.clip(cb); for (let i = 0; i < 4; i++) { const cr = new Path2D(); cr.ellipse(0.42, 0.3 + i * 0.07, 0.26, 0.04, 0.08, 0, TAU); g.fillStyle = i % 2 ? '#c97bb0' : '#e4a3cf'; g.fill(cr); } g.restore();
-    // silhouette: circles + a core, filled with the base tone; everything else is clipped to it
-    const sil = new Path2D(); sil.ellipse(0.03, -0.02, 0.64, 0.36, 0, 0, TAU); for (const [x0, y0, r] of BRAIN_DOTS.filter((d) => d[1] < 0.3 || d[0] < 0.25)) { sil.moveTo(x0 + r, y0); sil.arc(x0, y0, r, 0, TAU); }
-    g.fillStyle = '#eda7cf'; g.fill(sil); g.save(); g.clip(sil);
-    const LOBES = [ // [points, colour, fold box, fold angle]
-      [[[-0.9, 0.12], [-0.88, -0.38], [-0.5, -0.72], [-0.05, -0.74], [0.06, -0.52], [-0.06, -0.34], [0.04, -0.16], [-0.12, 0.0], [-0.42, 0.14]], '#f7a9bb', [-0.78, -0.62, -0.08, 0.05], 0.9],
-      [[[-0.06, -0.78], [0.38, -0.72], [0.6, -0.5], [0.5, -0.28], [0.56, -0.1], [0.2, -0.04], [0.06, -0.16], [-0.04, -0.34], [0.06, -0.52]], '#e19dd6', [-0.02, -0.64, 0.5, -0.1], -0.3],
-      [[[0.5, -0.5], [0.92, -0.3], [0.95, 0.12], [0.68, 0.26], [0.47, 0.02], [0.44, -0.26]], '#caa2e6', [0.5, -0.4, 0.82, 0.1], 1.4],
-      [[[-0.42, 0.12], [-0.08, -0.02], [0.32, 0.0], [0.66, 0.12], [0.7, 0.3], [0.3, 0.42], [-0.18, 0.38], [-0.44, 0.28]], '#d7a6ea', [-0.35, 0.06, 0.6, 0.32], 0.05],
-    ];
-    for (const [P, col, box, ang] of LOBES) { const lp = blob(P); g.fillStyle = col; g.fill(lp); folds(lp, col, 10, box, ang); }
-    g.restore();
+    const EDGE = '#7a3a5e', EW = 0.014, stem = (w, col) => { g.strokeStyle = col; g.lineCap = 'round'; g.lineWidth = w; g.beginPath(); g.moveTo(0.12, 0.36); g.lineTo(0.25, 0.58); g.stroke(); };
+    // the edge: the stem and every circle grown by EW in the edge colour, then the shapes on top in their own colours
+    const core = (grow) => { g.beginPath(); g.ellipse(0.03, -0.02, 0.64 + grow, 0.36 + grow, 0, 0, TAU); g.fill(); }; // fills the gaps between the circles
+    stem(0.115 + EW * 2, EDGE); g.fillStyle = EDGE; core(EW); for (const [x, y, r] of BRAIN_DOTS) { g.beginPath(); g.arc(x, y, r + EW, 0, TAU); g.fill(); }
+    stem(0.115, '#e9a2cd'); g.fillStyle = '#eaa6cf'; core(0);
+    for (const [x, y, r, col] of BRAIN_DOTS) { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); }
     return c;
   }
   function brain(x, cx, cy, s, f = 1) {
@@ -2053,7 +2032,7 @@ function viewsOf(x, t, CS, seed) {
       pill(x, 1040, 120, 'Front shot: talking to you', 26, { dot: C.amber });
     },
     focus3(x, W, H_, t) { // SUBJECT FOCUS: no people, a BIG brain, thought sparks, labels with lines, push-in on a part
-      focusShot(x, 3, { subj: 'brain', t0: 0, think: true, labels: [{ text: 'Thinking', at: [-0.5, -0.3], side: 'L', y: 230, t: 0 }, { text: 'Memory', at: [0.08, 0.18], side: 'R', y: 330, t: 0 }, { text: 'Balance', at: [0.46, 0.45], side: 'R', y: 470, t: 0 }] });
+      focusShot(x, 3, { subj: 'brain', t0: 0, think: true, labels: [{ text: 'Thinking', at: [-0.5, -0.3], side: 'L', y: 230, t: 0 }, { text: 'Memory', at: [0.08, 0.18], side: 'R', y: 330, t: 0 }, { text: 'Balance', at: [0.37, 0.37], side: 'R', y: 470, t: 0 }] });
     },
     focus2(x, W, H_, t) { // the cars ARE the subject: road and traffic sharp, only the buildings stay soft
       const gy = 610, P = 210, M = stageModel(gy, P), keep = stageModel(gy + 40, P).y(M.dp + ST.kerb + ST.road + ST.pave) - 2;
