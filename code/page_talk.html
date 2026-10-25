@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;700;900&display=block">
+</head><body style="margin:0;background:#000"><canvas id="c" width="1280" height="720"></canvas>
+
+<script src="lib/harness.js"></script><script src="lib/sound.js"></script><script src="styles/figures.js"></script>
+<script>
+const S = STYLES[0], cv = document.getElementById('c');
+window.DURATION = S.talkDuration;
+window.ready = (async()=>{ for (const f of S.fonts) await document.fonts.load(f,'AaZz09'); await document.fonts.ready; })();
+window.frame = (t, hero) => { const ctx = cv.getContext('2d'); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,1280,720); const t0=performance.now(); hero ? S.draw(ctx,1280,720,t) : S.talk(ctx,1280,720,t); return performance.now()-t0; };
+window.seek = (t) => frame(t);
+window.scoreSound = (k) => S.talkSound(k);
+window.CUTS = S.talkCuts;
+</script></body></html>
