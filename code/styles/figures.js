@@ -954,7 +954,7 @@
   // person(x, ch, A.P, st), then A.prop(x, J) (the cup / phone / book / remote on top of the hand).
   //   stand (default) | sit (o.seat m, default 0.46 = a chair; 0.42 = a sofa) | tv (sit + a remote, eyes on the TV) |
   //   lean (back against a wall, one foot crossed, arms crossed) | drink (a cup at the mouth, o.sip 0..1) |
-  //   phone (looking down at a phone in both hands; o.screen picks the screen) | read (an open book; o.cover) | walk (o.dist metres walked) |
+  //   phone (a phone held up in front of the chest, tilted toward the eyes: we see its back) | read (an open book held toward the face: we see its covers; o.cover) | walk (o.dist metres walked) |
   //   run (o.dist metres run: longer stride, forward lean, bent arms).
   // o.pxm = px per metre of the shot (needed for sit / walk / run). Combine with POSES for the arms when it fits
   // (pose(ch, act(...).P, 'explain')). Pick a different activity for each scene so the video never looks the same.
@@ -970,9 +970,16 @@
     if (name === 'lean') return { P: pose(ch, { ...P, lean: -0.1, tilt: 0.06, fF: [P.x - f * 0.05 * r, gy - foot], fB: [P.x + f * 0.55 * r, gy - foot] }, 'cross') };
     if (name === 'drink') { const J = rig(ch, P), sip = o.sip == null ? 1 : o.sip, m = [J.hc[0] + f * 0.75 * J.r, J.hc[1] + 0.85 * J.r], low = [J.shF[0] + f * 0.6 * J.torso, J.shF[1] + 0.6 * J.torso], w = mixP(low, m, eio(sip));
       return { P: { ...P, aF: { to: w }, hF: { m: 'fist' }, tilt: -0.1 * sip }, prop: (x, J2) => propCup(x, [J2.aF.w[0] + f * 0.12 * J2.r, J2.aF.w[1] - 0.1 * J2.r], J2.r, f * (-0.15 - 0.5 * sip)) }; }
-    if (name === 'phone' || name === 'read') { const J = rig(ch, P), c0 = [J.nb[0] + f * 0.75 * J.r, J.nb[1] + 1.55 * J.r];
-      return { P: { ...P, aF: { to: [c0[0] - f * 0.15 * J.r, c0[1] + 0.1 * J.r] }, hF: { m: 'fist' }, aB: { to: [c0[0] + f * 0.25 * J.r, c0[1] + 0.05 * J.r] }, hB: { m: 'fist' }, tilt: 0.16, lean: 0.03 },
-        prop: (x, J2) => { x.save(); x.translate(c0[0], c0[1]); x.rotate(f * (name === 'phone' ? 0.25 : 0.1)); if (name === 'phone') phone(x, 0, 0, 1.36 * J2.r, 'front', { screen: o.screen || 'chat', t: o.t, col: o.col }); else book(x, 0, -0.05 * J2.r, 0.95 * J2.r, 'open', { cover: o.cover }); x.restore(); } }; }
+    if (name === 'phone' || name === 'read') { // held up in front of the chest, tilted toward the EYES: the viewer sees the phone's back / the book's outside
+      const J = rig(ch, P), c0 = [J.nb[0] + f * (name === 'phone' ? 0.95 : 0.85) * J.r, J.nb[1] + (name === 'phone' ? 0.75 : 0.85) * J.r];
+      return { P: { ...P, aF: { to: [c0[0] - f * 0.05 * J.r, c0[1] + 0.3 * J.r] }, hF: { m: 'fist' }, aB: { to: [c0[0] + f * 0.12 * J.r, c0[1] + 0.25 * J.r] }, hB: { m: 'fist' }, tilt: 0.2, lean: 0.03 },
+        prop: (x, J2) => { const eye = [J2.hc[0] + f * 0.45 * J2.r, J2.hc[1] + 0.05 * J2.r]; let n = [eye[0] - c0[0], eye[1] - c0[1]]; const nl = Math.hypot(n[0], n[1]); n = [n[0] / nl, n[1] / nl];
+          const k = name === 'phone' ? 0.5 : 0.35, nn = [n[0] * (1 - k) - f * k, n[1] * (1 - k)], L2 = Math.hypot(nn[0], nn[1]), N = [nn[0] / L2, nn[1] / L2]; // between "at the eyes" and "toward the body"
+          let a2 = [-N[1], N[0]]; if (a2[0] * f < 0) a2 = [-a2[0], -a2[1]]; // the top edge points forward and up
+          x.save(); x.translate(c0[0], c0[1]); x.rotate(Math.atan2(a2[1], a2[0]) + Math.PI / 2); x.scale(name === 'phone' ? 0.42 : 0.5, 1);
+          if (name === 'phone') phone(x, 0, 0, 1.36 * J2.r, 'back', { col: o.col }); else book(x, 0, 0, 1.15 * J2.r, 'outside', { cover: o.cover });
+          x.restore(); SKIN = ch.skin; x.fillStyle = ch.skin; x.beginPath(); x.ellipse(c0[0] - f * 0.02 * J2.r, c0[1] + (name === 'phone' ? 0.28 : 0.36) * J2.r, 0.17 * J2.r, 0.14 * J2.r, 0, 0, TAU); x.fill(); } }; // the fist gripping its lower end
+    }
     if (name === 'walk') return { P: walkPose(ch, P.x, gy, P.h, f, o.dist || 0, pxm) };
     if (name === 'run') { const S = hipH / pxm * 2.2, ph = ((o.dist || 0) / S) % 1, legL = hipH;
       const fp = (p) => { p = ((p % 1) + 1) % 1; const st = 0.45; if (p < st) return [(0.5 - p / st) * S * pxm * 0.55, 0]; const q = (p - st) / (1 - st); return [(-0.5 + q) * S * pxm * 0.55, -Math.sin(q * Math.PI) * 0.3 * legL]; };
@@ -1089,7 +1096,7 @@
   //   o.screen = what is on the screen, CHOSEN FOR THE SCENE (change it every time): 'apps' | 'chat' | 'video' | 'map' |
   //   'photo' | 'call' | 'music' | 'off', or a function (x, sx, sy, sw, sh, t) drawing your own screen. o.col = body colour, o.t = time.
   // book(x, X, Y, s, view, o): a hardback, s = its height in px (~24 cm). view 'front' (cover, the white page block shows
-  //   along the top and the open side) | 'side' (the spine, with a label band) | 'back' | 'pages' (seen from the open side:
+  //   along the top and the open side) | 'side' (the spine, with a label band) | 'back' | 'outside' (an open book seen from behind, as a reader holds it) | 'pages' (seen from the open side:
   //   the white page block between two thin covers) | 'open' (open, two pages of lines).
   //   o.cover = { col, emblem: 'dot' | 'heart' | 'star' | 'leaf' | 'bolt' | 'none', emCol, band } CHOSEN FOR THE SCENE.
   // holdPhone / holdBook(x, view, X, Y, s, o): the object held by ONE hand in the house style (finger block + slim thumb,
@@ -1127,6 +1134,9 @@
       if (e !== 'none') x.fill(); };
     if (view === 'side') { const d = s * 0.17; x.fillStyle = col; rr(x, -d / 2, -s / 2, d, s, d * 0.25); x.fill(); x.fillStyle = pg; rr(x, -d * 0.3, -s / 2 + s * 0.01, d * 0.6, s * 0.05, d * 0.1); x.fill(); x.fillStyle = cv.band || cv.emCol || '#f5c63c'; rr(x, -d * 0.32, -s / 2 + s * 0.13, d * 0.64, s * 0.07, d * 0.2); x.fill(); x.fillStyle = shade(col, -0.18); x.fillRect(-d / 2, -s * 0.2, d, s * 0.015); x.restore(); return; }
     if (view === 'pages') { const d = s * 0.17; x.fillStyle = col; rr(x, -d / 2, -s / 2, d, s, d * 0.15); x.fill(); x.fillStyle = pg; x.fillRect(-d * 0.34, -s / 2 + s * 0.015, d * 0.68, s * 0.97); x.fillStyle = pd; for (let i = 1; i < 4; i++) x.fillRect(-d * 0.34 + d * 0.17 * i, -s / 2 + s * 0.015, d * 0.025, s * 0.97); x.restore(); return; }
+    if (view === 'outside') { // an open book seen from OUTSIDE (the reader holds it toward their face): two covers in a shallow V, the spine between, page edges along the top
+      for (const sd of [-1, 1]) { x.save(); x.translate(sd * s * 0.02, 0); x.rotate(sd * 0.06); x.fillStyle = sd < 0 ? shade(col, -0.12) : col; rr(x, sd < 0 ? -w : 0, -s / 2, w, s, s * 0.03); x.fill(); x.fillStyle = pg; rr(x, sd < 0 ? -w + w * 0.04 : w * 0.04, -s / 2 - s * 0.035, w * 0.92, s * 0.05, s * 0.02); x.fill(); x.restore(); }
+      x.fillStyle = shade(col, -0.3); rr(x, -s * 0.045, -s / 2, s * 0.09, s, s * 0.03); x.fill(); emb(w * 0.5, 0, s * 0.08); x.restore(); return; }
     if (view === 'open') { x.fillStyle = col; rr(x, -w * 1.05, -s / 2 - s * 0.03, w * 2.1, s * 1.06, s * 0.03); x.fill(); x.fillStyle = pg; rr(x, -w, -s / 2, w * 0.98, s, s * 0.02); x.fill(); rr(x, w * 0.02, -s / 2, w * 0.98, s, s * 0.02); x.fill(); x.fillStyle = pd; for (let i = 0; i < 7; i++) { x.fillRect(-w * 0.86, -s * 0.36 + i * s * 0.1, w * 0.72, s * 0.025); x.fillRect(w * 0.14, -s * 0.36 + i * s * 0.1, w * 0.72, s * 0.025); } x.restore(); return; }
     const ox = view === 'back' ? -1 : 1, pgw = s * 0.035; // the page block shows on the open side (right for the front, left for the back) and on top
     x.fillStyle = shade(col, -0.12); rr(x, -w / 2, -s / 2 - pgw * 0.6, w, s + pgw * 0.6, s * 0.03); x.fill();
@@ -1157,6 +1167,122 @@
     draw('front');
     const thumb = (sd) => { x.save(); x.translate(X - sd * ow * 0.5 + sd * 0.03 * r, hy + 0.28 * r); x.rotate(sd * 0.45); x.fillStyle = sk; rr(x, -0.055 * r, -0.4 * r, 0.11 * r, 0.44 * r, 0.055 * r); x.fill(); x.restore(); }; // the slim thumb over the near edge, tip pointing up and in
     if (o.both && kind === 'book') { thumb(-1); thumb(1); } else thumb(-1);
+  }
+
+  // ================= FRONT AND BACK VIEW BODIES (every activity also seen from the front and from behind) =================
+  // personFV(x, ch, o): the whole person facing the camera (view 'front') or seen from behind ('back'), head to feet,
+  //   built from the same parts as the portraits (the head, hair and upper body of frontBust / backBust), plus legs, arms
+  //   and house hands. o = { X, gy, h, view, act, t, st (face state), screen / cover (phone / read), seat (px above gy
+  //   for sit / tv, default 0.46 m at o.pxm), pxm }. act: stand | walk | run | sit | tv | drink | phone | read | wave |
+  //   cheer | lean | point. Mix the three views through a video: 3/4 (person + act), front (talking to me, walking or
+  //   running toward the camera), back (walking away, looking at something, over-the-shoulder).
+  function personFV(x, ch, o) {
+    const A = AGE[ch.age], h = o.h, r = h / (A.hd * 2), X = o.X, gy = o.gy, view = o.view || 'front', fr = view === 'front', t = o.t || 0, act = o.act || 'stand', wd = ch.wide || 1;
+    const pxm = o.pxm || 300, sitting = act === 'sit' || act === 'tv', seatY = gy - (o.seat || 0.46 * pxm);
+    let bob = 0; const ph = t * (act === 'run' ? 2.6 : 1.7) * TAU; if (act === 'walk') bob = Math.abs(Math.sin(ph)) * 0.06 * r; if (act === 'run') bob = Math.abs(Math.sin(ph)) * 0.16 * r;
+    const hipH = h * A.leg, torso = h - hipH - 2.32 * r, ua = torso * 0.62, fa = ua * 0.95, lw = A.lw * r * 1.9 * (1 + 0.5 * (wd - 1));
+    const drop = sitting ? (gy - hipH) - (seatY - 0.08 * r) : 0, hy = gy - h + r - bob + (sitting ? -drop * -1 : 0) + (act === 'run' ? 0.1 * r : 0);
+    const hc = [X, gy - h + r + (sitting ? (seatY - 0.08 * r) - (gy - hipH) : 0) - bob], hipY = hc[1] + (2 * A.hd - 1) * r - hipH, feetY = gy - 0.12 * r, sw = A.sw * 0.98 * wd;
+    const shL = [X - (sw - 0.38) * r, hc[1] + 1.55 * r], shR = [X + (sw - 0.38) * r, hc[1] + 1.55 * r], hipL = [X - 0.36 * r * wd, hipY], hipR = [X + 0.36 * r * wd, hipY];
+    SKIN = ch.skin; RIM = null; const top = ch.topC, sl = ch.sleeveC || top, bot = ch.botC || '#2a2340';
+    const limb = (a, b, c, w) => bone(x, a, b, w, c);
+    // ---- legs ----
+    let fL = [X - 0.4 * r, feetY], fR = [X + 0.4 * r, feetY], kneeUp = [0, 0];
+    if (act === 'walk') { const s2 = Math.sin(ph); fL = [X - 0.36 * r, feetY - Math.max(0, s2) * 0.35 * r]; fR = [X + 0.36 * r, feetY - Math.max(0, -s2) * 0.35 * r]; }
+    if (act === 'run') { const s2 = Math.sin(ph); fL = [X - 0.34 * r, feetY - Math.max(0, s2) * 1.1 * r]; fR = [X + 0.34 * r, feetY - Math.max(0, -s2) * 1.1 * r]; kneeUp = [Math.max(0, s2), Math.max(0, -s2)]; }
+    if (act === 'lean') { fL = [X + 0.12 * r, feetY]; fR = [X - 0.18 * r, feetY]; }
+    const thigh = (hipH - 0.17 * r) / 2, leg = (hp, ft, up) => { const [k] = ik2(hp, ft, thigh, thigh, [hp[0] < X ? -0.6 : 0.6, -0.2]); const kk = [k[0], k[1] - up * 0.25 * r]; const bare = ch.bottom === 'shorts' || ch.bottom === 'bare' || ch.bottom === 'skirt';
+      limb(hp, kk, ch.skin, lw * 1.1); limb(kk, ft, ch.skin, lw); if (!bare) { limb(hp, kk, bot, lw * 2.2); limb(kk, [ft[0], ft[1] - 0.12 * r], bot, lw * 1.95); } else if (ch.bottom === 'shorts') limb(hp, mixP(hp, kk, 0.6), bot, lw * 2.3);
+      x.fillStyle = fc(ch.shoeC || '#2b2d42'); x.beginPath(); x.ellipse(ft[0], ft[1] + 0.04 * r, 0.24 * r, 0.14 * r, 0, 0, TAU); x.fill(); };
+    if (sitting) { // seen from the front the thighs come toward us: short, knees, then the shins down to the floor
+      for (const sd of [-1, 1]) { const hp = sd < 0 ? hipL : hipR, kn = [X + sd * 0.48 * r, seatY + 0.15 * r], ft = [X + sd * 0.5 * r, feetY]; limb(hp, kn, ch.skin, lw * 1.2); limb(kn, ft, ch.skin, lw);
+        if (ch.bottom !== 'shorts' && ch.bottom !== 'bare') { limb(hp, kn, bot, lw * 2.4); limb(kn, [ft[0], ft[1] - 0.12 * r], bot, lw * 1.95); } x.fillStyle = fc(ch.shoeC || '#2b2d42'); x.beginPath(); x.ellipse(ft[0], ft[1] + 0.04 * r, 0.24 * r, 0.14 * r, 0, 0, TAU); x.fill(); } }
+    else { leg(hipL, fL, kneeUp[0]); leg(hipR, fR, kneeUp[1]); }
+    if (ch.bottom === 'skirt' || ch.top === 'dress') { x.fillStyle = fc(ch.bottom === 'skirt' ? bot : top); x.beginPath(); x.moveTo(X - 0.62 * r * wd, hipY - 0.2 * r); x.lineTo(X + 0.62 * r * wd, hipY - 0.2 * r); x.lineTo(X + 0.95 * r * wd, hipY + 0.9 * r); x.lineTo(X - 0.95 * r * wd, hipY + 0.9 * r); x.closePath(); x.fill(); }
+    // ---- arms: targets per activity (hands) ----
+    const hang = (sd) => [X + sd * (sw - 0.15) * r, shL[1] + (ua + fa) * 0.95];
+    let tL = hang(-1), tR = hang(1), hmL = 'back', hmR = 'back', prop = null, pL = [-0.25, 1], pR = [0.25, 1], fs = 1; // fs < 1: the forearm points toward the camera, so it looks shorter // elbow side preference (down, a little out)
+    const sV = Math.sin(ph);
+    if (act === 'walk') { fs = 0.8 + 0.2 * Math.abs(sV); tL = [tL[0], tL[1] - sV * 0.15 * r - 0.2 * r]; tR = [tR[0], tR[1] + sV * 0.15 * r - 0.2 * r]; }
+    if (act === 'run') { tL = [shL[0] + 0.15 * r, shL[1] + ua * 0.75 - sV * 0.45 * r]; tR = [shR[0] - 0.15 * r, shR[1] + ua * 0.75 + sV * 0.45 * r]; pL = [-0.5, 1]; pR = [0.5, 1]; fs = 0.55; }
+    if (sitting) { tL = [X - 0.45 * r, seatY + 0.05 * r]; tR = [X + 0.45 * r, seatY + 0.05 * r]; fs = 0.7; }
+    if (act === 'tv') { tR = [X + 0.3 * r, seatY - 0.15 * r]; prop = () => { x.save(); x.translate(tR[0], tR[1]); x.fillStyle = '#2a2632'; rr(x, -0.07 * r, -0.28 * r, 0.14 * r, 0.42 * r, 0.06 * r); x.fill(); x.restore(); }; }
+    if (act === 'drink') { tR = [X + 0.32 * r, hc[1] + 1.05 * r]; pR = [0.3, 1]; prop = () => propCup(x, [X + 0.3 * r, hc[1] + 0.82 * r], r * 0.85, -0.25, '#e5383b'); }
+    if (act === 'phone' || act === 'read') { const c0 = [X, shL[1] + ua * 0.85]; tL = [c0[0] - 0.42 * r, c0[1] + 0.15 * r]; tR = [c0[0] + 0.42 * r, c0[1] + 0.15 * r]; pL = [-0.4, 1]; pR = [0.4, 1]; fs = 0.4;
+      prop = fr ? () => (act === 'phone' ? phone(x, c0[0], c0[1] - 0.1 * r, 1.36 * r, 'back', { col: o.col }) : book(x, c0[0], c0[1] - 0.15 * r, 1.0 * r, 'outside', { cover: o.cover })) : null; }
+    if (act === 'wave') { tR = [shR[0] + 1.0 * r + Math.sin(t * 7) * 0.15 * r, shR[1] - 1.75 * r]; pR = [1, 1]; }
+    if (act === 'cheer') { tL = [shL[0] - 0.85 * r, shL[1] - 2.3 * r]; tR = [shR[0] + 0.85 * r, shR[1] - 2.3 * r]; pL = [-1, 0.5]; pR = [1, 0.5]; hmL = hmR = 'fist'; }
+    if (act === 'point') { tR = [shR[0] + 1.45 * r, shR[1] + 0.1 * r]; pR = [0, 1]; }
+    if (act === 'lean') { tL = [X + 0.45 * r, shL[1] + 1.2 * r]; tR = [X - 0.45 * r, shR[1] + 1.05 * r]; pL = [-0.4, 1]; pR = [0.4, 1]; fs = 0.55; } // arms crossed
+    const arm = (sh, tg, sd) => { const [e, w] = ik2(sh, tg, ua * (fs < 1 ? 0.9 : 1), fa * fs, sd < 0 ? pL : pR); limb(sh, e, ch.skin, lw * 1.1); limb(e, w, ch.skin, lw);
+      if (ch.sleeve !== 'short') { limb(sh, e, sl, A.sl * r * 1.15); limb(e, mixP(e, w, 0.8), sl, A.sl * r * 1.0); } else limb(sh, mixP(sh, e, 0.55), sl, A.sl * r * 1.2);
+      x.fillStyle = INK(); const d = [w[0] - e[0], w[1] - e[1]], L = Math.hypot(d[0], d[1]) || 1, u = [d[0] / L, d[1] / L]; // house hand: finger block + slim thumb on the inner side
+      x.save(); x.translate(w[0], w[1]); x.rotate(Math.atan2(u[1], u[0])); rr(x, -0.04 * r, -0.15 * r, 0.36 * r, 0.3 * r, 0.12 * r); x.fill(); x.fillStyle = shade(ch.skin, fr ? 0 : -0.12); rr(x, 0.02 * r, (sd * (fr ? -1 : 1) > 0 ? 0.08 : -0.18) * r, 0.24 * r, 0.1 * r, 0.05 * r); x.fill(); x.restore(); return w; };
+    // ---- upper body + head (portrait parts), clipped at the hips so the legs show ----
+    const torsoFV = () => { const tw = sw * r, ty = hc[1] + 1.3 * r, by2 = hipY + 0.15 * r, bw = tw * 0.82; // the body from the shoulders to the hips, tapering a little
+      const gr = x.createLinearGradient(X - tw, 0, X + tw, 0); gr.addColorStop(0, shade(top, fr ? 0.12 : -0.05)); gr.addColorStop(1, shade(top, fr ? -0.18 : -0.3)); x.fillStyle = gr;
+      x.beginPath(); x.moveTo(X - tw, ty + 0.4 * r); x.quadraticCurveTo(X - tw, ty, X - tw + 0.5 * r, ty); x.lineTo(X + tw - 0.5 * r, ty); x.quadraticCurveTo(X + tw, ty, X + tw, ty + 0.4 * r); x.lineTo(X + bw, by2); x.lineTo(X - bw, by2); x.closePath(); x.fill();
+      if (ch.stripeC) { x.fillStyle = fc(ch.stripeC); for (let k = 0; k < 4; k++) x.fillRect(X - tw * 0.92, ty + (0.6 + k * 0.62) * r, tw * 1.84, 0.2 * r); }
+      if (ch.bottom !== 'skirt' && ch.top !== 'dress') { x.fillStyle = fc(shade(bot, 0.04)); rr(x, X - bw, by2 - 0.35 * r, bw * 2, 0.5 * r, 0.12 * r); x.fill(); } }; // waistband / trousers top
+    const bodyBack = () => { // hair behind -> own torso -> the portrait's shoulders, neck, head and face (clipped above the chest)
+      if (fr) { const L = frontLayers(ch, r); x.drawImage(L.hb, X - L.cx, hc[1] - L.cy); torsoFV(); x.save(); x.beginPath(); x.rect(X - 4 * r, hc[1] - 3 * r, 8 * r, 4.8 * r); x.clip(); x.drawImage(L.bd, X - L.cx, hc[1] - L.cy); x.restore();
+        x.drawImage(L.hd, X - L.cx, hc[1] - L.cy); x.save(); x.translate(X, hc[1]); SKIN = ch.skin; face(x, 0, 0, r, ch, { look: [0, 0.05], ...(act === 'phone' || act === 'read' ? { look: [0, 0.8] } : {}), ...o.st, front: true }); x.restore(); }
+      else { torsoFV(); const B = backBust(ch, r, 0, {}), long = LONGH[ch.hair]; x.save(); x.beginPath(); x.rect(X - 4 * r, hc[1] - 3 * r, 8 * r, 4.8 * r); if (long) x.rect(X - 1.15 * r, hc[1], 2.3 * r, 3.4 * r); x.clip(); x.drawImage(B.img, X - B.cx, hc[1] - B.cy); x.restore(); }
+    };
+    if (!fr && (act === 'phone' || act === 'read')) { bodyBack(); arm(shL, [shL[0] + 0.2 * r, shL[1] + ua * 0.8], -1); arm(shR, [shR[0] - 0.2 * r, shR[1] + ua * 0.8], 1); return { hc, r }; } // from behind the hands are hidden in front of the body
+    if (act === 'lean' && fr) { bodyBack(); arm(shR, tR, 1); arm(shL, tL, -1); return { hc, r }; }
+    bodyBack();
+    if (prop && (act === 'phone' || act === 'read')) { arm(shL, tL, -1); arm(shR, tR, 1); prop(); // the object faces the character; the viewer sees its back / outside, fingers over its lower corners
+      x.fillStyle = INK(); for (const sd of [-1, 1]) { rr(x, X + sd * (act === 'phone' ? 0.36 : 0.62) * r - 0.13 * r, shL[1] + ua * 0.85 + (act === 'phone' ? 0.25 : 0.2) * r, 0.26 * r, 0.24 * r, 0.1 * r); x.fill(); } return { hc, r }; }
+    arm(shL, tL, -1); arm(shR, tR, 1); if (prop) prop();
+    return { hc, r };
+  }
+
+  // ================= PLACES (only the things that belong to that place, light from a real source) =================
+  // place(kind, o): a cached backdrop for one location with 3-5 items that BELONG there (nothing from other rooms):
+  //   sala (living room: sofa, coffee table, TV, lamp or plant, window) | kitchen (fridge, counter + kettle / microwave,
+  //   stove, window) | bedroom (bed, wardrobe, lamp, window) | study (desk, chair, bookshelf, desk lamp) | dining (table,
+  //   chairs, pendant lamp) | hall (door, mirror, plant). o = { gy, s (px per metre), light: 'window' | 'door' | 'lamp' |
+  //   'none' (default per place), v (variant: 0 / 1 mirrors the layout), pal (wall colours), blur }.
+  // LIGHT: rays and glows only come FROM their source: window light = soft shafts falling from the window onto the floor,
+  //   door light = a bright wedge spilling from the open door, lamp light = a warm round glow and a cone under the shade;
+  //   'none' = plain soft room light. Vary it per scene; the old always-there window shafts are gone from these rooms.
+  const PLACES = {
+    sala: { light: 'window', items: [['d', 'window', 'front', 280], ['f', 'sofa', 'front', 680, { seats: 3, col: '#2f4f8a' }], ['l', 'floor', 'front', 1010], ['d', 'tv', 'front', 1180], ['d', 'plant', 'front', 470]] },
+    kitchen: { light: 'window', items: [['a', 'fridge', '', 160], ['d', 'window', 'front', 560], ['a', 'counter', '', 560], ['a', 'kettle', '', 640, { y: 0.92 }], ['a', 'microwave', '', 490, { y: 0.92 }], ['a', 'stove', '', 820]] },
+    bedroom: { light: 'lamp', lamp: [880, 1.0], items: [['f', 'wardrobe', 'front', 170], ['f', 'bed', 'front', 560], ['l', 'floor', 'front', 880], ['d', 'window', 'front', 1110]] },
+    study: { light: 'window', items: [['d', 'window', 'front', 330], ['f', 'table', 'front', 680], ['f', 'chair', 'side', 560, { col: '#1fa39a' }], ['f', 'bookshelf', 'front', 1080], ['d', 'plant', 'front', 140]] },
+    dining: { light: 'lamp', lamp: [640, 1.9], items: [['f', 'table', 'front', 640], ['f', 'chair', 'side', 430, { col: '#c8323a' }], ['f', 'chair', 'side', 850, { col: '#c8323a', f: -1 }], ['l', 'pendant', 'front', 640], ['d', 'frame', 'front', 1060]] },
+    hall: { light: 'door', door: 640, items: [['a', 'door', '', 640], ['d', 'plant', 'front', 380], ['d', 'mirror', 'front', 920], ['d', 'clock', 'front', 220]] },
+  };
+  function placeBG(g, o) { // wall + floor without baked window shafts
+    const w = 1400, h = 800, pal = o.pal || ['#3a2a5e', '#7a4a78', '#c97a7e', '#f0b48a'], fy = (o.gy || GY) + 40;
+    const gr = g.createLinearGradient(0, 0, w, h); pal.forEach((c, i) => gr.addColorStop(i / (pal.length - 1), c)); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    const r = H.rng(o.seed || 7); for (let i = 0; i < 14; i++) glow(g, r.range(0, w), r.range(0, h * 0.6), r.range(20, 60), r.pick(['#ffd9a0', '#ff9fb0', '#fff1d0']), r.range(0.08, 0.2));
+    const fg = g.createLinearGradient(0, fy, 0, h); fg.addColorStop(0, '#6a3f4a'); fg.addColorStop(1, '#2a1830'); g.fillStyle = fg; g.fillRect(0, fy, w, h - fy);
+    g.fillStyle = 'rgba(255,220,190,0.06)'; for (let i = 0; i < 6; i++) g.fillRect(0, fy + 10 + i * i * 4, w, 2);
+  }
+  function place(kind, o = {}) {
+    const P = PLACES[kind] || PLACES.sala, light = o.light || P.light, v = o.v || 0, gy = o.gy || GY, s = o.s || 230;
+    return cached('pl_' + kind + light + v + gy + s + (o.blur || 0) + (o.pal || []).join(''), 1400, 800, (g) => {
+      placeBG(g, { ...o, gy }); g.save(); g.translate(60, 40);
+      const X = (x0) => (v ? 1280 - x0 : x0), items = P.items.map(([lib, k, vw, x0, op]) => [lib, k, vw, X(x0), { ...(op || {}), f: v && op && op.f ? -op.f : (v && vw === 'side' ? -1 : op && op.f) }]);
+      const drawItem = ([lib, k, vw, x0, op]) => { if (lib === 'a') appliance(g, k, x0, gy, s, op); else ({ f: furniture, d: decor, l: lightFx }[lib])(g, k, vw, x0, gy, s, op); };
+      const isSrc = (it) => (it[1] === 'window' || it[1] === 'door');
+      items.filter(isSrc).forEach(drawItem);
+      g.globalCompositeOperation = 'lighter';
+      if (light === 'window') { const win = items.find((it) => it[1] === 'window'); if (win) { const wx = win[3], top = gy - 2.3 * s, bot = gy - 0.9 * s, dir = wx < 640 ? 1 : -1;
+        for (let i = 0; i < 3; i++) { const x0 = wx - 0.55 * s + i * 0.38 * s, sg = g.createLinearGradient(x0, top, x0 + dir * 1.6 * s, gy + 30); sg.addColorStop(0, 'rgba(255,220,170,0.22)'); sg.addColorStop(1, 'rgba(255,220,170,0)'); g.fillStyle = sg;
+          g.beginPath(); g.moveTo(x0, top); g.lineTo(x0 + 0.3 * s, top); g.lineTo(x0 + 0.3 * s + dir * 1.9 * s, gy + 40); g.lineTo(x0 + dir * 1.9 * s, gy + 40); g.closePath(); g.fill(); }
+        glow(g, wx + dir * 1.2 * s, gy + 30, 1.1 * s, '#ffe2b0', 0.25); } }
+      if (light === 'door') { const dx = X(P.door || 640); g.fillStyle = 'rgba(255,236,190,0.55)'; g.fillRect(dx - 0.45 * s, gy - 2.05 * s, 0.9 * s, 2.05 * s);
+        const sg = g.createLinearGradient(0, gy, 0, gy + 0.9 * s); sg.addColorStop(0, 'rgba(255,230,180,0.35)'); sg.addColorStop(1, 'rgba(255,230,180,0)'); g.fillStyle = sg; g.beginPath(); g.moveTo(dx - 0.45 * s, gy); g.lineTo(dx + 0.45 * s, gy); g.lineTo(dx + 1.3 * s, gy + 0.9 * s); g.lineTo(dx - 1.3 * s, gy + 0.9 * s); g.closePath(); g.fill(); glow(g, dx, gy - 1.0 * s, 1.4 * s, '#ffe7b8', 0.3); }
+      if (light === 'lamp') { const [lx, lh] = P.lamp || [X(1010), 1.4]; const LX = v ? 1280 - lx : lx; glow(g, LX, gy - lh * s, 1.5 * s, '#ffd38a', 0.45); const cg = g.createLinearGradient(0, gy - lh * s, 0, gy); cg.addColorStop(0, 'rgba(255,214,140,0.22)'); cg.addColorStop(1, 'rgba(255,214,140,0)'); g.fillStyle = cg; g.beginPath(); g.moveTo(LX - 0.2 * s, gy - lh * s); g.lineTo(LX + 0.2 * s, gy - lh * s); g.lineTo(LX + 1.1 * s, gy + 20); g.lineTo(LX - 1.1 * s, gy + 20); g.closePath(); g.fill(); }
+      g.globalCompositeOperation = 'source-over';
+      items.filter((it) => !isSrc(it)).forEach(drawItem);
+      g.restore();
+      if (o.blur) { const b = blurImg(g.canvas, o.blur); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 1400, 800); g.drawImage(b, 0, 0); }
+    });
   }
 
   // ================= FRONT SHOT (a character turns to the camera and talks to the viewer) =================
@@ -2266,6 +2392,20 @@ function viewsOf(x, t, CS, seed) {
       person(x, CAST.leo, PL, stOf('leo', t, { look: [1, 0], expr: 'happy', mouth: 0.5 + 0.5 * Math.sin(t * 13), ph: 1 }), [0.8, -0.6], C.rimCool);
       person(x, CAST.zara, PZ, stOf('zara', t, { look: [-1, 0], expr: 'neutral', ph: 2 }), [-0.8, -0.6], C.rimCool);
       labelAt(x, 'background out of focus: not in the script', 640, 50);
+    },
+    places(x, W, H_, t) { // PLACES: only what belongs there, light from a real source (window / lamp / door / pendant)
+      [['sala', 'window'], ['kitchen', 'window'], ['bedroom', 'lamp'], ['study', 'window'], ['dining', 'lamp'], ['hall', 'door']].forEach(([k, l], i) => { x.save(); x.translate((i % 3) * 427, Math.floor(i / 3) * 360); x.scale(1 / 3, 1 / 2); x.beginPath(); x.rect(0, 0, 1280, 720); x.clip(); bg(x, place(k, { light: l }), 1, 0, 0); x.restore();
+        pill(x, (i % 3) * 427 + 110, Math.floor(i / 3) * 360 + 330, k + ' · ' + l + ' light', 18, { dot: C.amber }); });
+    },
+    frontacts(x, W, H_, t) { // FRONT VIEW of activities (personFV): stand, walk, run, sit, drink, phone, read, wave, cheer, lean
+      bg(x, place('sala', { light: 'none', blur: 5 }), 1, 0, 0); const ch = CAST.kai, acts = ['stand', 'walk', 'run', 'sit', 'drink', 'phone', 'read', 'wave', 'cheer', 'lean'];
+      acts.forEach((n, i) => { const X = 70 + i * 126, gy = 640; if (n === 'sit') furniture(x, 'chair', 'front', X, gy, 190, { col: '#1fa39a' }); personFV(x, ch, { X, gy, h: 300, view: 'front', act: n, t: 0.35, pxm: 190, st: { expr: 'happy', blink: 0 } });
+        x.font = F(800, 20); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, X, 676); });
+    },
+    backacts(x, W, H_, t) { // BACK VIEW of activities (personFV view 'back')
+      bg(x, place('sala', { light: 'none', blur: 5 }), 1, 0, 0); const ch = CAST.leo, acts = ['stand', 'walk', 'run', 'sit', 'drink', 'phone', 'read', 'wave', 'cheer', 'point'];
+      acts.forEach((n, i) => { const X = 70 + i * 126, gy = 640; if (n === 'sit') furniture(x, 'chair', 'front', X, gy, 190, { col: '#1fa39a' }); personFV(x, ch, { X, gy, h: 320, view: 'back', act: n, t: 0.35, pxm: 190 });
+        x.font = F(800, 20); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, X, 676); });
     },
     phones(x, W, H_, t) { // PHONE: front, side, back, held in side view, held in front view; the screen changes per scene
       bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const Y = 230, s = 250;
