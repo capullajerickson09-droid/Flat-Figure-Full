@@ -13,7 +13,7 @@ The full Golden-Hour Flat Figures video generator template. It describes flat 2D
   - `lib/export-mp4.js`: the Export MP4 button inside the page; it records the explainer in the browser with the sound effects and an uploaded MP3, for apps where Node and ffmpeg can't run.
   - `page3.html`: the main explainer demo.
   - `page_talk.html`: the conversation demo.
-- `sheets/`: all 42 reference images, numbered like the page: line-ups 1-6 with front / back / 3/4 views, hands, conversation shots, locations, animals, furniture, lights, decor, trees, grass, the body, vehicles, plus the pose library (37), front shot (38) and subject focus (39), activities (40), thinking without the brain (41) and the locked title (42).
+- `sheets/`: all 45 reference images, numbered like the page: line-ups 1-6 with front / back / 3/4 views, hands, conversation shots, locations, animals, furniture, lights, decor, trees, grass, the body, vehicles, plus the pose library (37), front shot (38) and subject focus (39), activities (40), thinking without the brain (41) the locked title (42), footprints (43), room items (44) and close-up variations (45).
 - `demos/`: example MP4s. `figures-demo.mp4` (24 s) zooms on every beat and has new poses, a brain close-up and a front shot; `talk-demo.mp4` (12 s) is a conversation.
 
 ## Shot rules

@@ -1002,6 +1002,87 @@
     x.restore();
   }
 
+  // ================= FOOTPRINTS (a trail of steps: walking, a journey, progress, "step by step") =================
+  // footprint(x, X, Y, s, ang, side, col, a): ONE bare footprint as flat shapes, no outline: a sole shaped like a bean
+  // (wide round ball, narrow arch pinched on the inner side, round heel) + five toe dots in an arc above the ball, the big
+  // toe largest, getting smaller toward the little toe. side = 'L' | 'R' (mirror images), ang = walking direction
+  // (radians, 0 = toward the right), s = foot length in px, a = alpha.
+  // footTrail(x, t, o): steps alternating left / right along a path, each one appearing on its beat and fading in;
+  //   o = { from: [x, y], to: [x, y], n: steps, s: foot length, gap: side offset, t0, dt (s per step), col, a, wave }.
+  //   Two looks from the references: small warm steps on a dark band (col '#e0a77c', a 1, s ~22), or big soft grey
+  //   see-through steps (col '#c9c4cf', a 0.55, s ~60). Steps can curve with o.wave (px of side-to-side swing).
+  function footprint(x, X, Y, s, ang, side, col = '#e0a77c', a = 1) {
+    const m = side === 'L' ? -1 : 1; x.save(); x.translate(X, Y); x.rotate(ang); x.scale(s, s * m); x.globalAlpha *= a; x.fillStyle = col;
+    // sole along +x (heel at -0.5, ball at +0.22): heel circle, ball ellipse, the arch joining them pinched on the inner side
+    x.beginPath(); x.ellipse(-0.36, -0.01, 0.13, 0.12, 0, 0, TAU); x.fill();
+    x.beginPath(); x.ellipse(0.13, 0.02, 0.21, 0.185, 0.12, 0, TAU); x.fill();
+    x.beginPath(); x.moveTo(-0.38, -0.125); x.quadraticCurveTo(-0.1, -0.16, 0.06, -0.165); x.lineTo(0.08, 0.19); x.quadraticCurveTo(-0.14, 0.04, -0.36, 0.11); x.closePath(); x.fill();
+    // toes: big toe on the inner side (+y before mirroring), smaller toward the outside, in an arc
+    const T = [[0.44, 0.115, 0.095], [0.46, -0.01, 0.068], [0.435, -0.1, 0.058], [0.395, -0.17, 0.05], [0.34, -0.225, 0.043]];
+    for (const [tx, ty, tr] of T) { x.beginPath(); x.arc(tx, ty, tr, 0, TAU); x.fill(); }
+    x.restore();
+  }
+  function footTrail(x, t, o) {
+    const [x0, y0] = o.from, [x1, y1] = o.to, n = o.n || 8, ang = Math.atan2(y1 - y0, x1 - x0), nx = -Math.sin(ang), ny = Math.cos(ang), gap = o.gap == null ? (o.s || 22) * 0.45 : o.gap;
+    for (let i = 0; i < n; i++) { const ap = seg(t, (o.t0 || 0) + i * (o.dt || 0.25), (o.t0 || 0) + i * (o.dt || 0.25) + 0.2); if (ap <= 0) continue;
+      const u = n > 1 ? i / (n - 1) : 0, w = (o.wave || 0) * Math.sin(u * Math.PI * 2), sd = i % 2 ? 1 : -1, px = lerp(x0, x1, u) + nx * (sd * gap + w), py = lerp(y0, y1, u) + ny * (sd * gap + w);
+      footprint(x, px, py, (o.s || 22) * (0.85 + 0.15 * ap), ang + sd * 0.12, sd < 0 ? 'L' : 'R', o.col, (o.a == null ? 1 : o.a) * ap); }
+  }
+
+  // ================= APPLIANCES, DOOR (front view, true sizes in metres, flat shapes, no outlines) =================
+  // appliance(x, kind, X, gy, s, o): door (0.9 x 2.05), fridge (0.7 x 1.8), stove (0.6 x 0.9, oven + hob), washer
+  // (0.6 x 0.85, round door), counter (1.2 x 0.9 kitchen cabinet with a top), microwave (0.5 x 0.3, put on a counter: o.y = 0.9),
+  // kettle (0.25 tall). s = px per metre, standing on gy (or o.y metres above it), centred on X. o.col = main colour.
+  function appliance(x, kind, X, gy, s, o = {}) {
+    const by = (o.y || 0), B = (x0, y0, x1, y1, c, rad = 0) => { x.fillStyle = c; rr(x, X + x0 * s, gy - (y1 + by) * s, (x1 - x0) * s, (y1 - y0) * s, rad * s); x.fill(); };
+    const Cc = (cx2, cy2, r2, c) => { x.fillStyle = c; x.beginPath(); x.arc(X + cx2 * s, gy - (cy2 + by) * s, r2 * s, 0, TAU); x.fill(); };
+    if (kind === 'door') { const c = o.col || '#a8693e'; B(-0.5, 0, 0.5, 2.12, shade(c, -0.35), 0.02); B(-0.45, 0, 0.45, 2.05, c, 0.015); B(-0.36, 1.15, 0.36, 1.92, shade(c, 0.1), 0.03); B(-0.36, 0.12, 0.36, 1.02, shade(c, 0.1), 0.03); B(0.3, 0.98, 0.38, 1.06, '#e8c060', 0.04); }
+    else if (kind === 'fridge') { const c = o.col || '#dfe6ea'; B(-0.35, 0, 0.35, 1.8, c, 0.06); B(-0.35, 1.12, 0.35, 1.14, shade(c, -0.18)); B(0.25, 1.22, 0.29, 1.62, shade(c, -0.25), 0.02); B(0.25, 0.55, 0.29, 1.0, shade(c, -0.25), 0.02); B(-0.3, 1.2, 0.18, 1.74, shade(c, 0.12), 0.04); }
+    else if (kind === 'stove') { const c = o.col || '#e9e4dc'; B(-0.3, 0, 0.3, 0.9, c, 0.03); B(-0.3, 0.88, 0.3, 0.92, '#2a2632', 0.01); B(-0.25, 0.12, 0.25, 0.62, '#2a2632', 0.03); B(-0.2, 0.18, 0.2, 0.5, '#4a4458', 0.02); B(-0.22, 0.66, 0.22, 0.69, shade(c, -0.25), 0.015); for (const k of [-0.18, -0.06, 0.06, 0.18]) Cc(k, 0.79, 0.025, '#4a4458'); }
+    else if (kind === 'washer') { const c = o.col || '#eef1f4'; B(-0.3, 0, 0.3, 0.85, c, 0.04); B(-0.3, 0.72, 0.3, 0.74, shade(c, -0.15)); Cc(0.0, 0.38, 0.22, shade(c, -0.3)); Cc(0.0, 0.38, 0.16, '#9fd0f0'); Cc(-0.05, 0.43, 0.05, 'rgba(255,255,255,0.6)'); Cc(0.2, 0.79, 0.03, '#5cd6ff'); B(-0.24, 0.77, -0.08, 0.81, shade(c, -0.25), 0.01); }
+    else if (kind === 'counter') { const c = o.col || '#5f8f8a'; B(-0.6, 0, 0.6, 0.86, c, 0.02); B(-0.64, 0.86, 0.64, 0.92, o.top || '#e9dcc4', 0.01); B(-0.02, 0.05, 0.02, 0.82, shade(c, -0.25)); B(-0.12, 0.6, -0.06, 0.64, '#e8c060', 0.02); B(0.06, 0.6, 0.12, 0.64, '#e8c060', 0.02); }
+    else if (kind === 'microwave') { const c = o.col || '#2f3440'; B(-0.25, 0, 0.25, 0.3, c, 0.03); B(-0.21, 0.04, 0.1, 0.26, '#4b5566', 0.02); B(0.14, 0.18, 0.21, 0.24, '#5cd6ff', 0.01); for (const k of [0.08, 0.13]) B(0.15, k - 0.015, 0.2, k + 0.015, '#8a93a6', 0.01); }
+    else if (kind === 'kettle') { const c = o.col || '#e5383b'; B(-0.1, 0, 0.1, 0.2, c, 0.06); B(-0.06, 0.2, 0.06, 0.24, shade(c, -0.2), 0.02); B(0.1, 0.06, 0.15, 0.17, shade(c, -0.2), 0.02); B(-0.15, 0.12, -0.1, 0.15, c, 0.01); }
+  }
+  // roomSet(key, o): a cached room backdrop with the NECESSARY things of the place, not too many (2-5 items), drawn once:
+  //   o = { gy: floor y, s: px per metre, items: [[lib, kind, view, X, opts]] (lib = 'f' furniture | 'd' decor |
+  //   'l' lights | 'a' appliance), blur: px (blur when they are not part of the script) }. Draw it with bg(x, img, 1, 0, 0).
+  function roomSet(key, o) {
+    return cached('rs_' + key, 1400, 800, (g) => {
+      g.drawImage(roomFloor('room', C.warm, 3, o.gy || GY), 0, 0); g.save(); g.translate(60, 40);
+      for (const [lib, kind, view, X, op] of o.items || []) { const fn = { f: furniture, d: decor, l: lightFx }[lib]; if (lib === 'a') appliance(g, kind, X, o.gy || GY, o.s || 230, op || {}); else if (fn) fn(g, kind, view, X, o.gy || GY, o.s || 230, op || {}); }
+      g.restore();
+      if (o.blur) { const b = blurImg(g.canvas, o.blur); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 1400, 800); g.drawImage(b, 0, 0); }
+    });
+  }
+
+  // ================= CLOSE-UP SHOTS (vary them: never the same close-up twice in a row) =================
+  // closeShot(x, t, o): o = { id, kind: 'face' (head and shoulders, front) | 'hips' (head to hips, 3/4 body, arms and
+  //   pose visible) | 'side' (head to hips in profile-ish 3/4, facing across the frame), f: facing 1 | -1, X: where the
+  //   person stands, bg: backdrop canvas (drifts slowly: the background MOVES), pass: true = a soft blurred figure walks
+  //   past far behind, fg: 'plant' | 'lamp' | 'cup' | 'frame' | 'shoulder' (a blurred foreground object at the frame edge,
+  //   drifting a little faster than the background = parallax), st: face state, pose: POSES name, u: pose blend }.
+  const CSF = {};
+  function closeFg(kind, id) { // foreground objects, drawn big once and blurred (cached)
+    const k = kind + (id || ''); if (CSF[k]) return CSF[k];
+    const c = document.createElement('canvas'); c.width = 700; c.height = 900; const g = c.getContext('2d');
+    if (kind === 'plant') decor(g, 'plant', 'front', 350, 900, 900, {});
+    if (kind === 'lamp') lightFx(g, 'floor', 'front', 350, 1500, 560, {});
+    if (kind === 'cup') { propCup(g, [350, 640], 520, 0, '#3d6fb6'); }
+    if (kind === 'frame') { g.fillStyle = '#f2ebe0'; g.fillRect(250, 0, 120, 900); g.fillStyle = '#e6dccb'; g.fillRect(250, 430, 450, 70); }
+    if (kind === 'shoulder' && id) { const B = backBust(CH(id), 260, 1, { blur: 0, dark: 0.28 }); g.drawImage(B.img, 350 - B.cx, 600 - B.cy); }
+    return (CSF[k] = blurImg(c, 9));
+  }
+  function closeShot(x, t, o) {
+    const ch = CH(o.id) || o.ch, f = o.f || 1, kind = o.kind || 'face';
+    if (o.bg) { let b = FSB.get(o.bg); if (!b) { b = blurImg(o.bg, 6); FSB.set(o.bg, b); } x.drawImage(b, -90 + Math.sin(t * 0.25) * 30, -60, 1460, 840); }
+    if (o.pass) { const px = ((t * 120) % 1900) - 300, ph = (t * 2.2) % 1; x.save(); x.globalAlpha = 0.35; x.filter = 'none'; const g = CH(o.pass === true ? 'omar' : o.pass); const P = walkPose(g, px, 600, 420, 1, t * 1.3, 250); person(x, g, P, { look: [0.3, 0], blink: 0, hair: { th: 0, th2: 0 } }); x.restore(); }
+    if (kind === 'face') frontBust(x, ch, o.X || 640, 310, o.R || 150, { look: [0, 0.05], breath: Math.sin(t * 1.7) * 0.5 + 0.5, ...o.st });
+    else { const h = 1220, P0 = { x: o.X || 640, gy: 70 + h, h, f, lean: 0.03, tilt: kind === 'side' ? 0.06 : 0, drop: breath(t), aF: { a: [0.1, 0.3] }, aB: { a: [-0.05, 0.25] }, hF: {}, hB: {} };
+      const P = o.pose ? pose(ch, P0, o.pose, o.u == null ? 1 : o.u, { t }) : P0; person(x, ch, P, { look: [0.3 * f, 0], ...o.st }); }
+    if (o.fg) { const img = closeFg(o.fg, o.fgId), side = o.fgSide || (f > 0 ? 'R' : 'L'), dx = Math.sin(t * 0.25) * 55; x.drawImage(img, side === 'R' ? 1280 - img.width * 0.55 + dx : -img.width * 0.45 + dx, 720 - img.height * 0.92); }
+  }
+
   // ================= FRONT SHOT (a character turns to the camera and talks to the viewer) =================
   // frontShot(x, t, o): o = { bg (cached canvas, drawn blurred behind), id, st (expr, look, mouth, blink, nod, tilt),
   //   X (head x, default 640), R (head radius, default 120), z (zoom) }. Use it for narration lines spoken to the viewer,
@@ -2109,6 +2190,29 @@ function viewsOf(x, t, CS, seed) {
       person(x, CAST.leo, PL, stOf('leo', t, { look: [1, 0], expr: 'happy', mouth: 0.5 + 0.5 * Math.sin(t * 13), ph: 1 }), [0.8, -0.6], C.rimCool);
       person(x, CAST.zara, PZ, stOf('zara', t, { look: [-1, 0], expr: 'neutral', ph: 2 }), [-0.8, -0.6], C.rimCool);
       labelAt(x, 'background out of focus: not in the script', 640, 50);
+    },
+    footsteps(x, W, H_, t) { // FOOTPRINTS: small warm steps on a dark band, big soft grey steps, and a trail that walks in step by step
+      x.fillStyle = '#2a2147'; x.fillRect(0, 0, 1280, 720); x.fillStyle = '#3a2a55'; x.fillRect(0, 60, 1280, 120);
+      footTrail(x, 9, { from: [80, 120], to: [1200, 120], n: 12, s: 34, t0: 0, dt: 0.1, col: '#e0a77c' });
+      const g = x.createLinearGradient(0, 230, 0, 420); g.addColorStop(0, '#5a3a5e'); g.addColorStop(1, '#7a4a5e'); x.fillStyle = g; x.fillRect(0, 230, 1280, 190);
+      footTrail(x, 9, { from: [110, 325], to: [1180, 325], n: 7, s: 92, gap: 34, t0: 0, dt: 0.1, col: '#c9c4cf', a: 0.6 });
+      footprint(x, 300, 560, 170, -Math.PI / 2, 'L', '#e0a77c'); footprint(x, 420, 590, 170, -Math.PI / 2, 'R', '#e0a77c');
+      footTrail(x, 0.6 + (t % 3), { from: [620, 640], to: [1200, 470], n: 8, s: 46, t0: 0.6, dt: 0.28, col: '#ffc857', wave: 26 });
+      pill(x, 330, 680, 'left  /  right', 24, { dot: C.amber }); pill(x, 930, 690, 'a trail that appears step by step', 24, { dot: C.mint });
+    },
+    rooms(x, W, H_, t) { // ROOM ITEMS: windows, doors, furniture and appliances, a few per place; sharp vs blurred
+      const A = roomSet('kitchen', { gy: 600, s: 210, items: [['d', 'window', 'front', 250, { col: '#f2ebe0' }], ['a', 'fridge', '', 70, {}], ['a', 'counter', '', 300, {}], ['a', 'microwave', '', 250, { y: 0.92 }], ['a', 'kettle', '', 370, { y: 0.92 }], ['a', 'stove', '', 485, {}], ['a', 'washer', '', 630, {}]] });
+      const B = roomSet('livingB', { gy: 600, s: 210, blur: 4, items: [['d', 'window', 'front', 300, {}], ['f', 'sofa', 'front', 620, { seats: 3, col: '#2f4f8a' }], ['l', 'floor', 'front', 900, {}], ['a', 'door', '', 1130, {}], ['d', 'plant', 'front', 140, {}]] });
+      x.save(); x.beginPath(); x.rect(0, 0, 640, 720); x.clip(); x.drawImage(A, -60, -40); x.restore();
+      x.save(); x.beginPath(); x.rect(640, 0, 640, 720); x.clip(); x.drawImage(B, -60, -40); const P = { x: 1000, gy: 640, h: 380, f: -1, aF: { a: [0.1, 0.25] }, aB: { a: [-0.05, 0.2] }, hF: {}, hB: {} }; const J = rig(CAST.kai, P); floorShadow(x, J, 640); person(x, CAST.kai, P, { look: [-0.3, 0], expr: 'happy', blink: 0, hair: { th: 0, th2: 0 } }); x.restore();
+      pill(x, 320, 680, 'kitchen: the things the scene needs', 22, { dot: C.amber }); pill(x, 960, 680, 'not in the script: soft blur', 22, { dot: C.mint });
+    },
+    close(x, W, H_, t) { // CLOSE-UP VARIATIONS: face with a plant in front, head to hips with a pose, over a shoulder, passer-by behind
+      const bgR = roomSet('closeBg', { gy: 600, s: 230, items: [['d', 'window', 'front', 420, {}], ['a', 'door', '', 1000, {}], ['f', 'bookshelf', 'front', 180, {}]] });
+      const cells = [{ id: 'kai', kind: 'face', fg: 'plant', st: { expr: 'happy', mouth: 0.3 } }, { id: 'leo', kind: 'hips', f: 1, pose: 'explain', fg: 'cup', st: { expr: 'happy' }, X: 560 },
+        { id: 'kai', kind: 'face', fg: 'shoulder', fgId: 'leo', fgSide: 'L', X: 760, st: { expr: 'focus', look: [-0.4, 0.05] } }, { id: 'leo', kind: 'hips', f: -1, pose: 'think', pass: true, st: { expr: 'focus', look: [-0.3, -0.6] }, X: 700 }];
+      cells.forEach((o, i) => { x.save(); x.translate((i % 2) * 640, Math.floor(i / 2) * 360); x.scale(0.5, 0.5); x.beginPath(); x.rect(0, 0, 1280, 720); x.clip(); closeShot(x, 2 + i, { ...o, bg: bgR }); x.restore(); });
+      ['face + plant in front', 'head to hips + pose + cup', 'face over a shoulder', 'head to hips + passer-by'].forEach((s, i) => pill(x, (i % 2) * 640 + 150, Math.floor(i / 2) * 360 + 330, s, 20, { dot: C.amber }));
     },
     acts(x, W, H_, t) { // ACTIVITIES (act()): sit on a chair, watch TV on the sofa, lean on a wall, drink, phone, read, walk, run
       bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const pxm = 168, ch = CAST.kai, gy = [330, 662];
