@@ -11,7 +11,7 @@ MY LOCATION / SUBJECTS:
 [Where it happens (e.g. the park, a bus station, a school, a room, a crowded street, a grass field, the ocean, a forest, the zoo, inside the body) and what must appear (people, organs, cells, animals, vehicles). If this is left as is, take it from MY CONTENT.]
 
 SHOT RULES: THE VIDEO IS WRONG WITHOUT THESE (check every one before rendering)
-Real problem these rules fix: a video came out with no zoom, no front view, and the character only walking back and forth.
+Real problem these rules fix: a video came out static: no zoom, no front view, the same angle all the time, an empty place, and the character only walking back and forth.
 1. ZOOM EVERY BEAT. The camera is never still for more than one beat (3-4 s): on every beat it eases in or out (`cam(x, z, cx, cy)`, z between 1.0 and about 1.35, eased over ~1 s, aimed at the character or thing that matters right now). Push in when something important is said, pull back to show the whole situation. In the BEATS table every beat has a zoom (e.g. 1.0 -> 1.2 on Kai's face). A video where z stays 1.0 is wrong.
 2. MIX THE ANGLES. Use at least these three kinds of shot in every video, never a whole video in one angle:
    - WHOLE-BODY 3/4 shot: characters head to feet on the floor (`person`).
@@ -19,7 +19,14 @@ Real problem these rules fix: a video came out with no zoom, no front view, and 
    - CONVERSATION: when two characters talk, over-the-shoulder front portrait of the speaker with the listener's back in the foreground (`otsShot`), mixed with side two-shots (see CONVERSATION SHOTS).
 3. CHARACTERS ACT. Walking is only for getting somewhere (a few seconds, then they stop). On every beat each character in the shot takes a pose that fits the words, eased in over ~0.35 s: `pose(ch, P, name, u)` with 13 poses (sheet `SHEETS.poses`): explain, present, point, idea, think, scratch, worry, shrug, cheer, thumbs, wave, hips, cross. Plus physical actions the story calls for (jump, catch, sit, drop, hold a prop). Each pose has the expression to match (see FACIAL EXPRESSIONS). A character doing the same thing for more than one beat is wrong.
 4. FOCUS ON THE SUBJECT. When the script explains a THING (the brain or a way of thinking, the heart, the lungs, an eye, a cell, an animal, a machine, a place), CUT AWAY to it with a moving transition: `focusShot` (sheet `SHEETS.focus3`). The characters are NOT in that shot; the subject is BIG in the middle of the screen (about 65 % of the height), labels pop in one per beat with a line to the part they name, the camera pushes in on the part being talked about (`push`), and for thinking / ideas / the mind the brain shows thought sparks (`think: true`). When the explanation is done, a moving transition goes BACK to the characters, who react (e.g. `idea` pose with `happy`, or `think` with `focus`). Use one focus shot per subject the script explains.
-5. PLAN IT FIRST. Before writing code, write the BEATS table with these columns for every beat: time, words, shot type (body 3/4 | front | over-shoulder | two-shot | focus), zoom (from -> to, aimed at what), each character's pose and expression, on-screen text, transition into the next shot. Then build exactly that table. Check: zoom changes on every beat, at least one front shot per 20 s, a new pose every beat, a focus shot for each subject explained.
+5. BE CREATIVE, NOT STATIC. Think like a director of a popular explainer channel, not a slideshow: every shot should be worth watching on its own.
+   - Vary the SHOT SIZE from shot to shot: wide (the whole place and everyone in it), medium (one or two people, knees up or whole body bigger), close-up (a face reacting, a hand doing something), extreme close-up (an object, a number, a detail). Never the same shot size and angle twice in a row.
+   - Vary the ANGLE within the flat 2D style: 3/4 view, side view (profile, walking past), front (talking to me), from behind / over the shoulder, top-down (a table, a map, a plate, a desk seen from above), a low framing (the character big against the sky) or a high framing (small in a wide place). Flip which side characters face between shots so it doesn't feel repeated.
+   - MOVE THE CAMERA, not only zoom: push in, pull out, pan sideways to follow a walk or reveal the next thing, track alongside a moving person or vehicle, a whip pan between ideas, a slow drift on a held shot. Something on screen changes every 1-2 seconds.
+   - ADD THE ELEMENTS THE STORY NEEDS, even when the script doesn't list them: the props a character uses (a phone, a cup, a book, a ball), the place's details (furniture, plants, lamps, cars, people walking by, birds, clouds, weather), and visual explainers (icons, arrows, a simple diagram, a counter that counts up, a progress bar, a map, a before / after split screen, a timeline). Use the libraries in the code (furniture, lights, decor, trees, grass, animals, vehicles, crowds, organs) and draw new things in the same flat style.
+   - SHOW, DON'T TELL: turn every idea into something visible: a metaphor (a battery draining for tiredness, a traffic jam of thoughts, a growing plant for learning), a demonstration (a character tries it), or a comparison (two characters side by side, one doing it right).
+   - Background life: wind in trees and hair, people or cars passing in the far background (blurred if not in the script), floating dust, blinking, breathing. No frame is ever frozen.
+6. PLAN IT FIRST. Before writing code, write the BEATS table with these columns for every beat: time, words, shot type (body 3/4 | front | over-shoulder | two-shot | top-down | focus), shot size (wide | medium | close-up | extreme close-up), camera (zoom from -> to aimed at what, or pan / track / whip), each character's pose and expression, props / place details / visual explainers on screen, on-screen text, transition into the next shot. Then build exactly that table. Check: zoom or camera move on every beat, no two shots in a row with the same size and angle, at least one front shot per 20 s, a new pose every beat, a focus shot for each subject explained, and the props / places / visual explainers each beat needs.
 
 REFERENCE IMAGES I ATTACH (every time)
 - A character line-up (people of different ages and genders, whole body, side by side). There are several line-ups and I attach one or more: LINE-UP 1 (light East / Southeast Asian skin tones, black hair, white hair for the elderly; reference cast `CAST`) and LINE-UP 2 (light Asian skin tones, mostly black hair, grey / white for the elderly; reference cast `CAST2`, sheet with FRONT / BACK / 3/4 rows). Use the attached one as the design reference for HOW characters are built: head shape and size, face (white eyes with dark pupils, brows, friendly mouth, soft nose and cheek shading), body proportions per age, posture, simple flat clothes with one shadow side. Match that construction exactly. For the characters in my video, keep that construction and vary the rest freely (see REFERENCE ONLY below). If I attach line-up 2, start from `CAST2`; if line-up 1, from `CAST`; the variation line-ups 3-6 (`CAST3`-`CAST6`: mixed builds, dresses and skirts, a hijab, ponytails and pigtails, patterned clothes, canes) can be used with either; if several are attached, any of those people may appear.
@@ -1724,7 +1731,7 @@ REFERENCE STYLE SOURCE (styles/figures.js; W/H_ are always 1280x720)
     for (const l of L) {
       const side = l.side || (l.at[0] < 0 ? 'L' : 'R'), i = cnt[side]++, u = back(seg(t, l.t, l.t + 0.4));
       const tx = px + (cx + l.at[0] * s - px) * pz, ty = py + (cy + l.at[1] * s - py) * pz;
-      const lx = side === 'L' ? 210 : 1070, ly = 200 + i * 86;
+      const lx = side === 'L' ? 210 : 1070, ly = l.y || 200 + i * 86;
       x.save(); x.globalAlpha = cl(u, 0, 1); x.strokeStyle = 'rgba(255,240,225,0.85)'; x.lineWidth = 3; x.beginPath(); x.moveTo(lx + (side === 'L' ? 120 : -120), ly); x.lineTo(lerp(lx + (side === 'L' ? 120 : -120), tx, cl(u, 0, 1)), lerp(ly, ty, cl(u, 0, 1))); x.stroke();
       x.fillStyle = l.dot || C.amber; x.beginPath(); x.arc(tx, ty, 7 * cl(u, 0, 1), 0, TAU); x.fill(); x.restore();
       pill(x, lx, ly, l.text, 28, { s: u, dot: l.dot || C.amber });
@@ -1863,8 +1870,8 @@ REFERENCE STYLE SOURCE (styles/figures.js; W/H_ are always 1280x720)
   // 5 SUBJECT FOCUS: the brain explains the delay. No people in this shot: the subject is BIG, labels come one per beat
   // with a line to the part they name, thought sparks run through it, the camera pushes in on the part being named.
   function exBrain(x, W, H_, t) {
-    focusShot(x, t, { subj: 'brain', t0: TL.brain[0], think: true, push: { at: [0.05, -0.55], z: 1.3, t0: TL.bMove, t1: TL.bMove + 1.0 },
-      labels: [{ text: 'Eyes see it', at: [-0.62, -0.12], side: 'L', t: TL.bSee }, { text: 'Brain decides', at: [0.5, -0.32], side: 'R', t: TL.bDecide, dot: C.mint }, { text: 'Hand moves', at: [0.05, -0.62], side: 'L', t: TL.bMove, dot: C.coral }] });
+    focusShot(x, t, { subj: 'brain', t0: TL.brain[0], think: true, push: { at: [0.0, -0.5], z: 1.3, t0: TL.bMove, t1: TL.bMove + 1.0 },
+      labels: [{ text: 'Eyes see it', at: [0.7, -0.12], side: 'R', y: 330, t: TL.bSee }, { text: 'Brain decides', at: [-0.55, -0.25], side: 'L', y: 240, t: TL.bDecide, dot: C.mint }, { text: 'Hand moves', at: [0.0, -0.56], side: 'R', y: 150, t: TL.bMove, dot: C.coral }] });
   }
   // 6 FRONT SHOT: back to the character, now facing the camera and talking to the viewer (background blurred), zoom in
   function exFront(x, W, H_, t) {
@@ -2224,19 +2231,56 @@ REFERENCE STYLE SOURCE (styles/figures.js; W/H_ are always 1280x720)
     }
     x.restore();
   }
-  // brain (side view, facing f): cerebrum with folds, lateral fissure, central sulcus, cerebellum at the back, brainstem
+  // brain (side view, front to the LEFT, like a flat cartoon icon): a lumpy pink cerebrum with a dark plum rim, raised
+  // rounded folds (dark grooves + light ridge highlights + glossy spots), a lavender temporal lobe along the bottom, a
+  // striped cerebellum under the back and a lilac brain stem. Drawn once at 360 px and cached; f = -1 faces right.
+  // Parts in units of s (centre 0,0): frontal lobe ~(-0.55,-0.25), top / motor ~(0.05,-0.55), back / vision ~(0.7,-0.1),
+  // temporal lobe ~(0.15,0.2), cerebellum ~(0.45,0.42), stem ~(0.28,0.62).
+  let BRAINC = null;
+  function brainArt(S) {
+    const c = document.createElement('canvas'); c.width = c.height = Math.ceil(S * 2.2); const g = c.getContext('2d'); g.translate(c.width / 2, c.height / 2); g.scale(S, S);
+    const RIMC = '#7c2350', RW = 0.035, rg = H.rng(17);
+    // a lumpy blob = a polygon + bumps along its outline; drawn grown by RW in the rim colour, then in its own colour
+    const blob = (pts, bump, grow) => { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.closePath(); for (const p of pts) { g.moveTo(p[0] + bump + grow, p[1]); g.arc(p[0], p[1], bump + grow, 0, TAU); } };
+    const ring = (cx, cy, rx, ry, n, a0 = 0, a1 = TAU, wob = 0.02) => { const o = []; for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * i / (n - (a1 - a0 >= TAU - 1e-6 ? 0 : 1)); o.push([cx + Math.cos(a) * rx + rg.range(-wob, wob), cy + Math.sin(a) * ry + rg.range(-wob, wob)]); } return o; };
+    const part = (pts, bump, col, hi) => { g.fillStyle = RIMC; blob(pts, bump, RW); g.fill(); g.fillStyle = col; blob(pts, bump, 0); g.fill(); if (hi) { g.save(); blob(pts, bump, 0); g.clip(); hi(); g.restore(); } };
+    // folds = fat rounded tubes (gyri) laid over each other like a maze: dark edge, body colour, light ridge on top.
+    // cols(x) gives the tube colour along the brain (pink at the front, lilac at the back).
+    const folds = (step, x0, x1, y0, y1, len, groove, cols, horiz, w = 0.105) => {
+      const L = []; for (let yy = y0; yy <= y1; yy += step[1]) for (let xx = x0 + ((Math.round(yy / step[1]) % 2) * step[0] / 2); xx <= x1; xx += step[0]) {
+        let x = xx + rg.range(-0.03, 0.03), y = yy + rg.range(-0.03, 0.03), a = horiz ? rg.range(-0.25, 0.25) : rg.range(0, TAU); const p = [[x, y]];
+        for (let j = 0, k = Math.round(len / 0.06); j < k; j++) { a += rg.range(-0.75, 0.75); x += Math.cos(a) * 0.06; y += Math.sin(a) * 0.06 * (horiz ? 0.3 : 1); p.push([x, y]); } L.push(p); }
+      const path = (p, dx, dy) => { g.beginPath(); g.moveTo(p[0][0] + dx, p[0][1] + dy); for (let j = 1; j < p.length - 1; j++) g.quadraticCurveTo(p[j][0] + dx, p[j][1] + dy, (p[j][0] + p[j + 1][0]) / 2 + dx, (p[j][1] + p[j + 1][1]) / 2 + dy); g.lineTo(p[p.length - 1][0] + dx, p[p.length - 1][1] + dy); g.stroke(); };
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      for (const p of L) { const c0 = cols(p[0][0]);
+        g.strokeStyle = groove; g.lineWidth = w + 0.05; path(p, 0, 0);       // the dark groove around the fold
+        g.strokeStyle = c0; g.lineWidth = w; path(p, 0, 0);                  // the fold itself
+        g.strokeStyle = 'rgba(255,236,245,0.75)'; g.lineWidth = w * 0.28; path(p, -w * 0.18, -w * 0.22); } // light along its top
+    };
+    const gloss = (spots) => { g.fillStyle = 'rgba(255,240,248,0.75)'; for (const [x, y, r, a] of spots) { g.beginPath(); g.ellipse(x, y, r, r * 0.45, a, 0, TAU); g.fill(); } };
+    // brain stem (behind everything), then cerebellum
+    g.save(); g.translate(0.22, 0.32); g.rotate(-0.38); g.fillStyle = RIMC; rr(g, -0.075 - RW, -0.02, 0.15 + RW * 2, 0.5 + RW, 0.075 + RW); g.fill(); g.fillStyle = '#c98bd8'; rr(g, -0.075, 0, 0.15, 0.48, 0.075); g.fill(); g.fillStyle = 'rgba(255,255,255,0.35)'; rr(g, -0.045, 0.06, 0.03, 0.34, 0.015); g.fill(); g.restore();
+    part(ring(0.45, 0.4, 0.26, 0.15, 14, 0, TAU, 0.006), 0.05, '#e586b0', () => { g.strokeStyle = '#b5517f'; g.lineWidth = 0.02; g.lineCap = 'round'; for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(0.45, 0.3 + i * 0.045, 0.3, 0.05, 0.06, Math.PI * 0.05, Math.PI * 0.95); g.stroke(); } });
+    // cerebrum: a wide dome, flatter underneath
+    const cer = []; for (let i = 0; i < 30; i++) { const a = i / 30 * TAU; cer.push([Math.cos(a) * 0.78 + rg.range(-0.012, 0.012), -0.1 + Math.sin(a) * (Math.sin(a) < 0 ? 0.52 : 0.3) + rg.range(-0.012, 0.012)]); }
+    part(cer, 0.085, '#f7a3c3', () => {
+      const lg = g.createLinearGradient(-0.8, 0, 0.9, 0); lg.addColorStop(0, 'rgba(255,170,200,0)'); lg.addColorStop(0.55, 'rgba(230,160,220,0)'); lg.addColorStop(1, 'rgba(200,150,235,0.85)'); g.fillStyle = lg; g.fillRect(-1, -1, 2, 2); // back of the brain turns lilac
+      const sh = g.createLinearGradient(0, -0.6, 0, 0.3); sh.addColorStop(0, 'rgba(255,225,238,0.3)'); sh.addColorStop(1, 'rgba(170,70,130,0.22)'); g.fillStyle = sh; g.fillRect(-1, -1, 2, 2);
+      const pinkLilac = (x) => { const u = cl((x + 0.3) / 1.1, 0, 1); const A = [247, 163, 196], B = [214, 170, 236]; return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * u)).join(',')})`; };
+      folds([0.24, 0.17], -0.74, 0.72, -0.56, 0.14, 0.34, '#9c2f5c', pinkLilac);
+      gloss([[-0.5, -0.42, 0.06, -0.5], [-0.12, -0.5, 0.05, -0.3], [0.32, -0.46, 0.05, 0.2], [-0.66, -0.08, 0.04, -1.1], [0.05, -0.18, 0.04, 0]]);
+    });
+    // temporal lobe along the bottom, lavender (the lateral fissure is its dark top rim)
+    part(ring(0.22, 0.16, 0.52, 0.15, 44, 0, TAU, 0.002), 0.022, '#dcaaf0', () => {
+      const sh = g.createLinearGradient(0, 0, 0, 0.35); sh.addColorStop(0, 'rgba(255,240,255,0.25)'); sh.addColorStop(1, 'rgba(120,60,160,0.25)'); g.fillStyle = sh; g.fillRect(-1, -1, 2, 2);
+      folds([0.28, 0.09], -0.24, 0.66, 0.08, 0.24, 0.3, '#874090', () => '#dcaaf0', true, 0.085);
+      gloss([[-0.12, 0.06, 0.05, -0.25], [0.35, 0.05, 0.035, 0.1]]);
+    });
+    return c;
+  }
   function brain(x, cx, cy, s, f = 1) {
-    x.save(); x.translate(cx, cy); x.scale(f, 1);
-    x.fillStyle = '#c98a8a'; x.beginPath(); x.moveTo(-s * 0.05, s * 0.3); x.quadraticCurveTo(-s * 0.08, s * 0.65, -s * 0.18, s * 0.85); x.lineTo(s * 0.02, s * 0.85); x.quadraticCurveTo(s * 0.06, s * 0.6, s * 0.1, s * 0.32); x.fill(); // brainstem
-    x.fillStyle = '#d99a9a'; x.beginPath(); x.ellipse(-s * 0.45, s * 0.38, s * 0.32, s * 0.2, 0.15, 0, TAU); x.fill(); // cerebellum
-    x.strokeStyle = '#b87070'; x.lineWidth = s * 0.015; for (let i = 0; i < 5; i++) { x.beginPath(); x.ellipse(-s * 0.45, s * 0.38, s * (0.3 - i * 0.05), s * (0.18 - i * 0.03), 0.15, Math.PI * 0.95, TAU * 0.98); x.stroke(); }
-    const g = x.createRadialGradient(s * 0.1, -s * 0.2, 0, 0, 0, s * 0.9); g.addColorStop(0, '#f6bcbc'); g.addColorStop(1, '#dd8f92'); x.fillStyle = g;
-    x.beginPath(); x.moveTo(s * 0.7, s * 0.05); x.bezierCurveTo(s * 0.85, -s * 0.55, s * 0.1, -s * 0.85, -s * 0.45, -s * 0.55); x.bezierCurveTo(-s * 0.8, -s * 0.3, -s * 0.85, s * 0.15, -s * 0.55, s * 0.25); x.bezierCurveTo(-s * 0.2, s * 0.35, s * 0.1, s * 0.15, s * 0.3, s * 0.32); x.bezierCurveTo(s * 0.55, s * 0.4, s * 0.68, s * 0.22, s * 0.7, s * 0.05); x.fill();
-    x.save(); x.clip(); x.strokeStyle = '#c47a7e'; x.lineWidth = s * 0.022; x.lineCap = 'round'; const rg = H.rng(42);
-    for (let i = 0; i < 22; i++) { const px = rg.range(-0.7, 0.7) * s, py = rg.range(-0.7, 0.25) * s; x.beginPath(); x.moveTo(px, py); for (let j = 0; j < 4; j++) x.quadraticCurveTo(px + (j + 0.5) * s * 0.06, py + (j % 2 ? 1 : -1) * s * 0.05, px + (j + 1) * s * 0.06, py + rg.range(-0.03, 0.03) * s); x.stroke(); }
-    x.strokeStyle = '#a85a60'; x.lineWidth = s * 0.035; x.beginPath(); x.moveTo(s * 0.45, s * 0.05); x.quadraticCurveTo(s * 0.1, -s * 0.05, -s * 0.2, s * 0.02); x.stroke(); // lateral fissure
-    x.beginPath(); x.moveTo(s * 0.05, -s * 0.72); x.quadraticCurveTo(-s * 0.02, -s * 0.35, s * 0.08, -s * 0.05); x.stroke(); // central sulcus
-    x.restore(); x.restore();
+    if (!BRAINC) BRAINC = brainArt(360);
+    const k = s / 360; x.save(); x.translate(cx, cy); x.scale(f * k, k); x.drawImage(BRAINC, -BRAINC.width / 2, -BRAINC.height / 2); x.restore();
   }
   // eyeball (front, slightly turned): white sphere with vessels, iris with fibres, pupil (size 0..1 widens in the dark),
   // corneal highlight; the optic nerve leaves from the back
@@ -2769,7 +2813,7 @@ function viewsOf(x, t, CS, seed) {
       pill(x, 1040, 120, 'Front shot: talking to you', 26, { dot: C.amber });
     },
     focus3(x, W, H_, t) { // SUBJECT FOCUS: no people, a BIG brain, thought sparks, labels with lines, push-in on a part
-      focusShot(x, 3, { subj: 'brain', t0: 0, think: true, labels: [{ text: 'Thinking', at: [0.15, -0.45], side: 'R', t: 0 }, { text: 'Memory', at: [0.0, 0.25], side: 'L', t: 0 }, { text: 'Balance', at: [-0.45, 0.4], side: 'L', t: 0 }] });
+      focusShot(x, 3, { subj: 'brain', t0: 0, think: true, labels: [{ text: 'Thinking', at: [-0.5, -0.3], side: 'L', y: 230, t: 0 }, { text: 'Memory', at: [0.2, 0.18], side: 'R', y: 330, t: 0 }, { text: 'Balance', at: [0.5, 0.42], side: 'R', y: 470, t: 0 }] });
     },
     focus2(x, W, H_, t) { // the cars ARE the subject: road and traffic sharp, only the buildings stay soft
       const gy = 610, P = 210, M = stageModel(gy, P), keep = stageModel(gy + 40, P).y(M.dp + ST.kerb + ST.road + ST.pave) - 2;
