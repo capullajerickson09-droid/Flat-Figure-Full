@@ -954,7 +954,7 @@
   // person(x, ch, A.P, st), then A.prop(x, J) (the cup / phone / book / remote on top of the hand).
   //   stand (default) | sit (o.seat m, default 0.46 = a chair; 0.42 = a sofa) | tv (sit + a remote, eyes on the TV) |
   //   lean (back against a wall, one foot crossed, arms crossed) | drink (a cup at the mouth, o.sip 0..1) |
-  //   phone (looking down at a phone in both hands) | read (an open book) | walk (o.dist metres walked) |
+  //   phone (looking down at a phone in both hands; o.screen picks the screen) | read (an open book; o.cover) | walk (o.dist metres walked) |
   //   run (o.dist metres run: longer stride, forward lean, bent arms).
   // o.pxm = px per metre of the shot (needed for sit / walk / run). Combine with POSES for the arms when it fits
   // (pose(ch, act(...).P, 'explain')). Pick a different activity for each scene so the video never looks the same.
@@ -972,7 +972,7 @@
       return { P: { ...P, aF: { to: w }, hF: { m: 'fist' }, tilt: -0.1 * sip }, prop: (x, J2) => propCup(x, [J2.aF.w[0] + f * 0.12 * J2.r, J2.aF.w[1] - 0.1 * J2.r], J2.r, f * (-0.15 - 0.5 * sip)) }; }
     if (name === 'phone' || name === 'read') { const J = rig(ch, P), c0 = [J.nb[0] + f * 0.75 * J.r, J.nb[1] + 1.55 * J.r];
       return { P: { ...P, aF: { to: [c0[0] - f * 0.15 * J.r, c0[1] + 0.1 * J.r] }, hF: { m: 'fist' }, aB: { to: [c0[0] + f * 0.25 * J.r, c0[1] + 0.05 * J.r] }, hB: { m: 'fist' }, tilt: 0.16, lean: 0.03 },
-        prop: (x, J2) => (name === 'phone' ? propPhone(x, c0, J2.r, f * 0.25) : propBook(x, [c0[0], c0[1] - 0.05 * J2.r], J2.r, f * 0.12)) }; }
+        prop: (x, J2) => { x.save(); x.translate(c0[0], c0[1]); x.rotate(f * (name === 'phone' ? 0.25 : 0.1)); if (name === 'phone') phone(x, 0, 0, 1.36 * J2.r, 'front', { screen: o.screen || 'chat', t: o.t, col: o.col }); else book(x, 0, -0.05 * J2.r, 0.95 * J2.r, 'open', { cover: o.cover }); x.restore(); } }; }
     if (name === 'walk') return { P: walkPose(ch, P.x, gy, P.h, f, o.dist || 0, pxm) };
     if (name === 'run') { const S = hipH / pxm * 2.2, ph = ((o.dist || 0) / S) % 1, legL = hipH;
       const fp = (p) => { p = ((p % 1) + 1) % 1; const st = 0.45; if (p < st) return [(0.5 - p / st) * S * pxm * 0.55, 0]; const q = (p - st) / (1 - st); return [(-0.5 + q) * S * pxm * 0.55, -Math.sin(q * Math.PI) * 0.3 * legL]; };
@@ -1081,6 +1081,82 @@
     else { const h = 1220, P0 = { x: o.X || 640, gy: 70 + h, h, f, lean: 0.03, tilt: kind === 'side' ? 0.06 : 0, drop: breath(t), aF: { a: [0.1, 0.3] }, aB: { a: [-0.05, 0.25] }, hF: {}, hB: {} };
       const P = o.pose ? pose(ch, P0, o.pose, o.u == null ? 1 : o.u, { t }) : P0; person(x, ch, P, { look: [0.3 * f, 0], ...o.st }); }
     if (o.fg) { const img = closeFg(o.fg, o.fgId), side = o.fgSide || (f > 0 ? 'R' : 'L'), dx = Math.sin(t * 0.25) * 55; x.drawImage(img, side === 'R' ? 1280 - img.width * 0.55 + dx : -img.width * 0.45 + dx, 720 - img.height * 0.92); }
+  }
+
+  // ================= PHONE AND BOOK (front / side / back, held in side view and front view) =================
+  // phone(x, X, Y, s, view, o): a smartphone, s = its height in px (a real phone is ~15 cm: s = 0.15 * px per metre).
+  //   view 'front' (rounded body, screen with a camera dot) | 'side' (thin edge with the buttons) | 'back' (camera bump).
+  //   o.screen = what is on the screen, CHOSEN FOR THE SCENE (change it every time): 'apps' | 'chat' | 'video' | 'map' |
+  //   'photo' | 'call' | 'music' | 'off', or a function (x, sx, sy, sw, sh, t) drawing your own screen. o.col = body colour, o.t = time.
+  // book(x, X, Y, s, view, o): a hardback, s = its height in px (~24 cm). view 'front' (cover, the white page block shows
+  //   along the top and the open side) | 'side' (the spine, with a label band) | 'back' | 'pages' (seen from the open side:
+  //   the white page block between two thin covers) | 'open' (open, two pages of lines).
+  //   o.cover = { col, emblem: 'dot' | 'heart' | 'star' | 'leaf' | 'bolt' | 'none', emCol, band } CHOSEN FOR THE SCENE.
+  // holdPhone / holdBook(x, view, X, Y, s, o): the object held by ONE hand in the house style (finger block + slim thumb,
+  //   back of the hand by default, o.skin): 'side' = the hand's fist box wraps across the thin object, which shows above and
+  //   below it, thumb over the top; 'front' = the hand behind: the thumb lies over the left edge, the finger block peeks
+  //   past the right edge. o.arm = [x, y] where the forearm comes from (default below the frame); o.both (book) = two hands.
+  //   In a scene with a person use the same shapes at the person's hand (act 'phone' / 'read' do this).
+  const SCREENS = {
+    apps: (x, X, Y, W2, H2) => { const c = ['#5aa9e6', '#b77ce8', '#5fd38a', '#f5d24a', '#ef5b5b', '#f5a54a', '#5ad6c8', '#e87cb7']; for (let i = 0; i < 6; i++) { x.fillStyle = c[i]; rr(x, X + W2 * (0.08 + (i % 4) * 0.23), Y + H2 * (0.05 + Math.floor(i / 4) * 0.12), W2 * 0.17, W2 * 0.17, W2 * 0.04); x.fill(); } x.fillStyle = 'rgba(255,255,255,0.45)'; rr(x, X + W2 * 0.04, Y + H2 * 0.82, W2 * 0.92, H2 * 0.14, W2 * 0.05); x.fill(); [0, 1, 2, 3].forEach((i) => { x.fillStyle = ['#5fd38a', '#5fd38a', '#5aa9e6', '#ef5b5b'][i]; rr(x, X + W2 * (0.08 + i * 0.23), Y + H2 * 0.845, W2 * 0.17, W2 * 0.17, W2 * 0.04); x.fill(); }); },
+    chat: (x, X, Y, W2, H2) => { [[0, 0.1, 0.62, '#ffffff'], [1, 0.25, 0.55, '#5fd38a'], [0, 0.4, 0.5, '#ffffff'], [1, 0.55, 0.66, '#5fd38a'], [0, 0.7, 0.4, '#ffffff']].forEach(([me, v, w, c]) => { x.fillStyle = c; rr(x, me ? X + W2 * (0.94 - w) : X + W2 * 0.06, Y + H2 * v, W2 * w, H2 * 0.1, H2 * 0.04); x.fill(); }); },
+    video: (x, X, Y, W2, H2, t) => { x.fillStyle = '#1b1424'; x.fillRect(X, Y + H2 * 0.25, W2, H2 * 0.4); x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(X + W2 * 0.42, Y + H2 * 0.37); x.lineTo(X + W2 * 0.62, Y + H2 * 0.45); x.lineTo(X + W2 * 0.42, Y + H2 * 0.53); x.closePath(); x.fill(); x.fillStyle = 'rgba(255,255,255,0.4)'; x.fillRect(X + W2 * 0.08, Y + H2 * 0.72, W2 * 0.84, H2 * 0.02); x.fillStyle = '#ef5b5b'; x.fillRect(X + W2 * 0.08, Y + H2 * 0.72, W2 * 0.84 * (0.3 + 0.2 * Math.sin((t || 0) * 0.5)), H2 * 0.02); },
+    map: (x, X, Y, W2, H2) => { x.fillStyle = '#cfe8c4'; x.fillRect(X, Y, W2, H2); x.fillStyle = '#9fd0f0'; x.fillRect(X + W2 * 0.6, Y, W2 * 0.4, H2 * 0.35); x.fillStyle = '#ffffff'; x.fillRect(X, Y + H2 * 0.55, W2, H2 * 0.05); x.fillRect(X + W2 * 0.3, Y, W2 * 0.06, H2); x.fillStyle = '#ef5b5b'; x.beginPath(); x.arc(X + W2 * 0.5, Y + H2 * 0.42, W2 * 0.1, 0, TAU); x.fill(); x.beginPath(); x.moveTo(X + W2 * 0.42, Y + H2 * 0.45); x.lineTo(X + W2 * 0.5, Y + H2 * 0.56); x.lineTo(X + W2 * 0.58, Y + H2 * 0.45); x.fill(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(X + W2 * 0.5, Y + H2 * 0.42, W2 * 0.04, 0, TAU); x.fill(); },
+    photo: (x, X, Y, W2, H2) => { x.fillStyle = '#8fc7f0'; x.fillRect(X, Y, W2, H2); x.fillStyle = '#ffd84a'; x.beginPath(); x.arc(X + W2 * 0.72, Y + H2 * 0.25, W2 * 0.12, 0, TAU); x.fill(); x.fillStyle = '#5fb84a'; x.beginPath(); x.ellipse(X + W2 * 0.3, Y + H2 * 0.95, W2 * 0.6, H2 * 0.4, 0, 0, TAU); x.fill(); x.fillStyle = '#4a9a3a'; x.beginPath(); x.ellipse(X + W2 * 0.9, Y + H2, W2 * 0.5, H2 * 0.3, 0, 0, TAU); x.fill(); },
+    call: (x, X, Y, W2, H2) => { x.fillStyle = '#2a2147'; x.fillRect(X, Y, W2, H2); x.fillStyle = '#e8bb92'; x.beginPath(); x.arc(X + W2 / 2, Y + H2 * 0.3, W2 * 0.22, 0, TAU); x.fill(); x.fillStyle = '#1c1514'; x.beginPath(); x.arc(X + W2 / 2, Y + H2 * 0.26, W2 * 0.22, Math.PI, TAU); x.fill(); x.fillStyle = '#5fd38a'; x.beginPath(); x.arc(X + W2 * 0.28, Y + H2 * 0.8, W2 * 0.11, 0, TAU); x.fill(); x.fillStyle = '#ef5b5b'; x.beginPath(); x.arc(X + W2 * 0.72, Y + H2 * 0.8, W2 * 0.11, 0, TAU); x.fill(); },
+    music: (x, X, Y, W2, H2, t) => { x.fillStyle = '#b77ce8'; rr(x, X + W2 * 0.12, Y + H2 * 0.08, W2 * 0.76, W2 * 0.76, W2 * 0.06); x.fill(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(X + W2 * 0.5, Y + H2 * 0.08 + W2 * 0.38, W2 * 0.14, 0, TAU); x.fill(); for (let i = 0; i < 9; i++) { const hh = H2 * (0.04 + 0.08 * Math.abs(Math.sin((t || 0) * 4 + i))); x.fillStyle = '#5aa9e6'; x.fillRect(X + W2 * (0.1 + i * 0.09), Y + H2 * 0.82 - hh, W2 * 0.05, hh); } },
+    off: (x, X, Y, W2, H2) => { x.fillStyle = '#16111d'; x.fillRect(X, Y, W2, H2); x.fillStyle = 'rgba(255,255,255,0.06)'; x.beginPath(); x.moveTo(X, Y + H2 * 0.3); x.lineTo(X + W2, Y); x.lineTo(X + W2, Y + H2 * 0.15); x.lineTo(X, Y + H2 * 0.45); x.fill(); },
+  };
+  function phone(x, X, Y, s, view = 'front', o = {}) {
+    const col = o.col || '#24406a', w = s * 0.5, R0 = s * 0.08; x.save(); x.translate(X, Y);
+    if (view === 'side') { const d = s * 0.055; x.fillStyle = shade(col, -0.15); rr(x, -d / 2, -s / 2, d, s, d * 0.45); x.fill(); x.fillStyle = shade(col, -0.4); rr(x, d / 2 - d * 0.1, -s * 0.28, d * 0.35, s * 0.14, d * 0.2); x.fill(); rr(x, d / 2 - d * 0.1, -s * 0.08, d * 0.35, s * 0.08, d * 0.2); x.fill(); x.restore(); return; }
+    x.fillStyle = col; rr(x, -w / 2, -s / 2, w, s, R0); x.fill();
+    if (view === 'back') { x.fillStyle = shade(col, -0.25); rr(x, -w / 2 + s * 0.05, -s / 2 + s * 0.05, s * 0.2, s * 0.2, s * 0.04); x.fill(); x.fillStyle = shade(col, -0.45); x.beginPath(); x.arc(-w / 2 + s * 0.15, -s / 2 + s * 0.15, s * 0.05, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,255,255,0.18)'; x.beginPath(); x.arc(-w / 2 + s * 0.13, -s / 2 + s * 0.13, s * 0.018, 0, TAU); x.fill(); x.restore(); return; }
+    const sx = -w / 2 + s * 0.035, sy = -s / 2 + s * 0.08, sw = w - s * 0.07, sh = s * 0.86;
+    x.save(); x.beginPath(); rr(x, sx, sy, sw, sh, s * 0.03); x.clip(); x.fillStyle = '#b9dcf2'; x.fillRect(sx, sy, sw, sh);
+    const sc = typeof o.screen === 'function' ? o.screen : SCREENS[o.screen || 'apps']; if (sc) sc(x, sx, sy, sw, sh, o.t || 0); x.restore();
+    x.fillStyle = '#16111d'; x.beginPath(); x.arc(0, -s / 2 + s * 0.04, s * 0.016, 0, TAU); x.fill();
+    x.restore();
+  }
+  function book(x, X, Y, s, view = 'front', o = {}) {
+    const cv = o.cover || {}, col = cv.col || '#d63a3a', w = s * 0.72, pg = '#f6efdc', pd = shade(pg, -0.08); x.save(); x.translate(X, Y);
+    const emb = (cx2, cy2, R) => { const e = cv.emblem || 'dot', c = cv.emCol || '#f5c63c'; x.fillStyle = c; x.beginPath();
+      if (e === 'dot') x.arc(cx2, cy2, R, 0, TAU); else if (e === 'heart') { x.moveTo(cx2, cy2 + R); x.bezierCurveTo(cx2 - R * 1.6, cy2 - R * 0.2, cx2 - R * 0.6, cy2 - R * 1.4, cx2, cy2 - R * 0.45); x.bezierCurveTo(cx2 + R * 0.6, cy2 - R * 1.4, cx2 + R * 1.6, cy2 - R * 0.2, cx2, cy2 + R); }
+      else if (e === 'star') for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr2 = i % 2 ? R * 0.45 : R; x.lineTo(cx2 + Math.cos(a) * rr2, cy2 + Math.sin(a) * rr2); }
+      else if (e === 'leaf') x.ellipse(cx2, cy2, R * 0.55, R, 0.6, 0, TAU); else if (e === 'bolt') { x.moveTo(cx2 + R * 0.2, cy2 - R); x.lineTo(cx2 - R * 0.5, cy2 + R * 0.1); x.lineTo(cx2, cy2 + R * 0.1); x.lineTo(cx2 - R * 0.2, cy2 + R); x.lineTo(cx2 + R * 0.5, cy2 - R * 0.1); x.lineTo(cx2, cy2 - R * 0.1); x.closePath(); }
+      if (e !== 'none') x.fill(); };
+    if (view === 'side') { const d = s * 0.17; x.fillStyle = col; rr(x, -d / 2, -s / 2, d, s, d * 0.25); x.fill(); x.fillStyle = pg; rr(x, -d * 0.3, -s / 2 + s * 0.01, d * 0.6, s * 0.05, d * 0.1); x.fill(); x.fillStyle = cv.band || cv.emCol || '#f5c63c'; rr(x, -d * 0.32, -s / 2 + s * 0.13, d * 0.64, s * 0.07, d * 0.2); x.fill(); x.fillStyle = shade(col, -0.18); x.fillRect(-d / 2, -s * 0.2, d, s * 0.015); x.restore(); return; }
+    if (view === 'pages') { const d = s * 0.17; x.fillStyle = col; rr(x, -d / 2, -s / 2, d, s, d * 0.15); x.fill(); x.fillStyle = pg; x.fillRect(-d * 0.34, -s / 2 + s * 0.015, d * 0.68, s * 0.97); x.fillStyle = pd; for (let i = 1; i < 4; i++) x.fillRect(-d * 0.34 + d * 0.17 * i, -s / 2 + s * 0.015, d * 0.025, s * 0.97); x.restore(); return; }
+    if (view === 'open') { x.fillStyle = col; rr(x, -w * 1.05, -s / 2 - s * 0.03, w * 2.1, s * 1.06, s * 0.03); x.fill(); x.fillStyle = pg; rr(x, -w, -s / 2, w * 0.98, s, s * 0.02); x.fill(); rr(x, w * 0.02, -s / 2, w * 0.98, s, s * 0.02); x.fill(); x.fillStyle = pd; for (let i = 0; i < 7; i++) { x.fillRect(-w * 0.86, -s * 0.36 + i * s * 0.1, w * 0.72, s * 0.025); x.fillRect(w * 0.14, -s * 0.36 + i * s * 0.1, w * 0.72, s * 0.025); } x.restore(); return; }
+    const ox = view === 'back' ? -1 : 1, pgw = s * 0.035; // the page block shows on the open side (right for the front, left for the back) and on top
+    x.fillStyle = shade(col, -0.12); rr(x, -w / 2, -s / 2 - pgw * 0.6, w, s + pgw * 0.6, s * 0.03); x.fill();
+    x.fillStyle = pg; rr(x, -w / 2 + (ox > 0 ? w * 0.06 : pgw * 0.3), -s / 2 - pgw * 0.4, w - w * 0.06 - pgw * 0.3, pgw, pgw * 0.3); x.fill();
+    x.fillStyle = pg; rr(x, ox > 0 ? w / 2 - pgw * 1.2 : -w / 2 + pgw * 0.2, -s / 2 + pgw * 0.2, pgw, s - pgw, pgw * 0.3); x.fill();
+    x.fillStyle = col; rr(x, ox > 0 ? -w / 2 : -w / 2 + pgw * 1.2, -s / 2, w - pgw * 1.2, s, s * 0.03); x.fill();
+    x.fillStyle = shade(col, -0.16); x.fillRect(ox > 0 ? -w / 2 + w * 0.06 : w / 2 - pgw * 1.2 - w * 0.08, -s / 2, w * 0.025, s);
+    if (view === 'front') emb(-pgw * 0.6 + w * 0.03, 0, s * 0.08);
+    x.restore();
+  }
+  function holdObj(x, kind, view, X, Y, s, o = {}) {
+    const r = s * (kind === 'phone' ? 1.25 : 0.95), sk = o.skin || '#e8bb92', arm0 = o.arm || [X + s * 0.55, Y + s * 1.25]; SKIN = sk; RIM = null;
+    const draw = (v) => (kind === 'phone' ? phone(x, X, Y, s, v, o) : book(x, X, Y, s, v, o));
+    const forearm = (e, w) => { bone(x, e, w, 0.22 * r, sk); if (o.sleeve) bone(x, e, mixP(e, w, 0.5), 0.34 * r, o.sleeve); };
+    if (view === 'side') { // the fist box wraps across the thin object (it shows above and below), thumb over its top edge
+      const th = kind === 'phone' ? s * 0.055 : s * 0.17, G = [X, Y + s * (kind === 'phone' ? 0.08 : 0.05)];
+      const e = [G[0] + 0.55 * r, G[1] + 1.4 * r], u = [(G[0] - e[0]), (G[1] - e[1])], L = Math.hypot(u[0], u[1]), d = [u[0] / L, u[1] / L], w = [G[0] - d[0] * (0.2 * r + th / 2), G[1] - d[1] * (0.2 * r + th / 2)];
+      draw(kind === 'phone' ? 'side' : 'pages'); forearm(e, w); hand(x, { e, w }, r, { hold: { w: th, axis: [0, 1] }, view: o.view || 'back' }, 1, null, 'over');
+      return;
+    }
+    // front: the hand is behind the object; the finger block peeks past one edge, the slim thumb lies over the other edge
+    const ow = kind === 'phone' ? s * 0.5 : s * 0.72, hy = Y + s * (kind === 'phone' ? 0.12 : 0.18);
+    const one = (sd) => { const w = [X + sd * ow * 0.18, Y + s * 0.5 + 0.12 * r], e = [w[0] + sd * 0.25 * r, w[1] + 1.3 * r];
+      forearm(e, w); x.fillStyle = sk;
+      x.save(); x.translate(X + sd * ow * 0.5, hy); x.rotate(sd * 0.12); rr(x, sd > 0 ? -0.2 * r : -0.06 * r, -0.36 * r, 0.26 * r, 0.62 * r, 0.12 * r); x.fill(); x.restore(); // the finger block behind the object, its tips curling past the edge
+      x.beginPath(); x.ellipse(w[0], w[1] - 0.1 * r, 0.26 * r, 0.22 * r, 0, 0, TAU); x.fill(); }; // the palm under the object's bottom edge
+    if (o.both && kind === 'book') { one(1); one(-1); } else one(1);
+    draw('front');
+    const thumb = (sd) => { x.save(); x.translate(X - sd * ow * 0.5 + sd * 0.03 * r, hy + 0.28 * r); x.rotate(sd * 0.45); x.fillStyle = sk; rr(x, -0.055 * r, -0.4 * r, 0.11 * r, 0.44 * r, 0.055 * r); x.fill(); x.restore(); }; // the slim thumb over the near edge, tip pointing up and in
+    if (o.both && kind === 'book') { thumb(-1); thumb(1); } else thumb(-1);
   }
 
   // ================= FRONT SHOT (a character turns to the camera and talks to the viewer) =================
@@ -2190,6 +2266,24 @@ function viewsOf(x, t, CS, seed) {
       person(x, CAST.leo, PL, stOf('leo', t, { look: [1, 0], expr: 'happy', mouth: 0.5 + 0.5 * Math.sin(t * 13), ph: 1 }), [0.8, -0.6], C.rimCool);
       person(x, CAST.zara, PZ, stOf('zara', t, { look: [-1, 0], expr: 'neutral', ph: 2 }), [-0.8, -0.6], C.rimCool);
       labelAt(x, 'background out of focus: not in the script', 640, 50);
+    },
+    phones(x, W, H_, t) { // PHONE: front, side, back, held in side view, held in front view; the screen changes per scene
+      bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const Y = 230, s = 250;
+      phone(x, 120, Y, s, 'front', { screen: 'apps' }); phone(x, 300, Y, s, 'side'); phone(x, 470, Y, s, 'back');
+      holdObj(x, 'phone', 'side', 790, 300, 270, { skin: '#e8bb92', sleeve: '#8b5cd6' }); holdObj(x, 'phone', 'front', 1080, 290, 270, { skin: '#e8bb92', sleeve: '#8b5cd6', screen: 'chat' });
+      ['apps', 'chat', 'video', 'map', 'photo', 'call', 'music', 'off'].forEach((n, i) => { const X = 80 + (i % 4) * 150, Yy = 470 + Math.floor(i / 4) * 0; phone(x, X + (i >= 4 ? 75 : 0), i < 4 ? 500 : 625, 95, 'front', { screen: n, t }); x.font = F(700, 15); x.textAlign = 'left'; x.fillStyle = C.white; x.fillText(n, X + (i >= 4 ? 75 : 0) + 30, i < 4 ? 500 : 625); });
+      ['front', 'side', 'back'].forEach((n, i) => { x.font = F(800, 22); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, [120, 300, 470][i], 395); });
+      ['held, side', 'held, front'].forEach((n, i) => pill(x, [790, 1080][i], 40, n, 22, { dot: C.amber }));
+    },
+    books(x, W, H_, t) { // BOOK: front, side (spine), back, pages, open, held in side view, held in front view; the cover changes
+      bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const Y = 220, s = 220;
+      book(x, 100, Y, s, 'front', { cover: { col: '#d63a3a', emblem: 'dot' } }); book(x, 260, Y, s, 'side', { cover: { col: '#d63a3a' } }); book(x, 390, Y, s, 'back', { cover: { col: '#d63a3a' } }); book(x, 520, Y, s, 'pages', { cover: { col: '#d63a3a' } });
+      holdObj(x, 'book', 'side', 760, 300, 260, { skin: '#e8bb92', sleeve: '#1fa39a', cover: { col: '#d63a3a' } }); holdObj(x, 'book', 'front', 1060, 280, 260, { skin: '#e8bb92', sleeve: '#1fa39a', cover: { col: '#2f6fb6', emblem: 'star', emCol: '#ffd84a' }, both: true });
+      [['#3fae5a', 'leaf', '#f6efdc'], ['#8b5cd6', 'heart', '#ff8ab0'], ['#f5a54a', 'bolt', '#2a2147'], ['#2a2147', 'star', '#ffc857']].forEach(([c, e, ec], i) => book(x, 70 + i * 100, 560, 110, 'front', { cover: { col: c, emblem: e, emCol: ec } }));
+      book(x, 530, 560, 85, 'open', { cover: { col: '#d63a3a' } });
+      ['front', 'side', 'back', 'pages'].forEach((n, i) => { x.font = F(800, 22); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, [100, 260, 390, 520][i], 365); });
+      [['covers change per scene', 220], ['open', 530]].forEach(([n, X]) => { x.font = F(700, 18); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, X, 655); });
+      ['held, side', 'held, front'].forEach((n, i) => pill(x, [760, 1060][i], 40, n, 22, { dot: C.amber }));
     },
     footsteps(x, W, H_, t) { // FOOTPRINTS: small warm steps on a dark band, big soft grey steps, and a trail that walks in step by step
       x.fillStyle = '#2a2147'; x.fillRect(0, 0, 1280, 720); x.fillStyle = '#3a2a55'; x.fillRect(0, 60, 1280, 120);
