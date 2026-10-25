@@ -1,8 +1,9 @@
 <!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;700;900&display=block">
 </head><body style="margin:0;background:#000"><canvas id="c" width="1280" height="720"></canvas>
+<div id="xbar" style="font:15px system-ui;color:#eee;padding:8px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label>Voiceover / music (MP3): <input id="xfile" type="file" accept="audio/*"></label><button id="xbtn" type="button" style="font:700 15px system-ui;padding:8px 16px;border-radius:999px;border:0;background:#ffb06a;color:#1b1424;cursor:pointer">&#11015; Export MP4</button><span id="xst"></span></div>
 
-<script src="lib/harness.js"></script><script src="lib/sound.js"></script><script src="styles/figures.js"></script>
+<script src="lib/harness.js"></script><script src="lib/sound.js"></script><script src="lib/export-mp4.js"></script><script src="styles/figures.js"></script>
 <script>
 const S = STYLES[0], cv = document.getElementById('c');
 window.DURATION = S.talkDuration;
@@ -11,4 +12,5 @@ window.frame = (t, hero) => { const ctx = cv.getContext('2d'); ctx.setTransform(
 window.seek = (t) => frame(t);
 window.scoreSound = (k) => S.talkSound(k);
 window.CUTS = S.talkCuts;
+MP4X.attach({ canvas: cv, seek: window.seek, duration: window.DURATION, scoreSound: window.scoreSound, button: document.getElementById('xbtn'), file: document.getElementById('xfile'), status: document.getElementById('xst') });
 </script></body></html>

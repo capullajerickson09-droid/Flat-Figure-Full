@@ -9,7 +9,8 @@ The full Golden-Hour Flat Figures video generator template. It describes flat 2D
   - `lib/harness.js`: helpers.
   - `lib/sound.js`: the sound kit.
   - `styles/figures.js`: the style source (casts, hands, furniture, lights, trees, scenes).
-  - `make-mp4.cjs`: the MP4 renderer.
+  - `make-mp4.cjs`: the MP4 renderer (Node + Playwright + ffmpeg).
+  - `lib/export-mp4.js`: the Export MP4 button inside the page; it records the explainer in the browser with the sound effects and an uploaded MP3, for apps where Node and ffmpeg can't run.
   - `page3.html`: the main explainer demo.
   - `page_talk.html`: the conversation demo.
 - `sheets/`: all 39 reference images, numbered like the page: line-ups 1-6 with front / back / 3/4 views, hands, conversation shots, locations, animals, furniture, lights, decor, trees, grass, the body, vehicles, plus the pose library (37), front shot (38) and subject focus (39).
@@ -17,6 +18,9 @@ The full Golden-Hour Flat Figures video generator template. It describes flat 2D
 
 ## Shot rules
 The template starts with SHOT RULES that every video must follow: zoom on every beat, mix whole-body, front (`frontShot`) and over-the-shoulder (`otsShot`) shots, a new pose every beat (`pose()`, 13 poses), and a cut-away to a big subject (`focusShot`, e.g. the brain) whenever the script explains a thing.
+
+## Get the MP4 without Node
+Open `code/page3.html` in Chrome, Edge or Safari, choose an MP3 (optional) and click **⬇ Export MP4**. It plays once in real time and downloads `explainer.mp4`.
 
 ## Render the demos
 ```

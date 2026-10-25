@@ -26,7 +26,9 @@ Real problem these rules fix: a video came out static: no zoom, no front view, t
    - ADD THE ELEMENTS THE STORY NEEDS, even when the script doesn't list them: the props a character uses (a phone, a cup, a book, a ball), the place's details (furniture, plants, lamps, cars, people walking by, birds, clouds, weather), and visual explainers (icons, arrows, a simple diagram, a counter that counts up, a progress bar, a map, a before / after split screen, a timeline). Use the libraries in the code (furniture, lights, decor, trees, grass, animals, vehicles, crowds, organs) and draw new things in the same flat style.
    - SHOW, DON'T TELL: turn every idea into something visible: a metaphor (a battery draining for tiredness, a traffic jam of thoughts, a growing plant for learning), a demonstration (a character tries it), or a comparison (two characters side by side, one doing it right).
    - Background life: wind in trees and hair, people or cars passing in the far background (blurred if not in the script), floating dust, blinking, breathing. No frame is ever frozen.
-6. PLAN IT FIRST. Before writing code, write the BEATS table with these columns for every beat: time, words, shot type (body 3/4 | front | over-shoulder | two-shot | top-down | focus), shot size (wide | medium | close-up | extreme close-up), camera (zoom from -> to aimed at what, or pan / track / whip), each character's pose and expression, props / place details / visual explainers on screen, on-screen text, transition into the next shot. Then build exactly that table. Check: zoom or camera move on every beat, no two shots in a row with the same size and angle, at least one front shot per 20 s, a new pose every beat, a focus shot for each subject explained, and the props / places / visual explainers each beat needs.
+6. WORDS ON SCREEN ARE YOUR OWN, NOT THE SCRIPT'S. Apart from (a) the title, (b) numbers, percentages and units (25 %, 0.25 s, 31 cm) and (c) phrases I give you to show word for word, do NOT put any words from my script on screen. Instead, for every scene write short RELATABLE phrases and expressions that fit what is happening and how the character is posing: a reaction ("Wait, what?!", "Oh no…", "Got it!"), a thought ("Why so slow?"), a feeling ("So tired…"), a cheer ("Nailed it!"), a friendly label for a part or a step ("Eyes spot it", "Brain decides"). Analyse the topic and the beat first so every phrase is clearly connected to the topic and to the pose / expression it sits beside (an `idea` pose gets an "Aha!"-type phrase, a `worry` pose a worried one). Keep them short (1-4 words), varied (never the same phrase twice), and never a copy or a close paraphrase of the spoken sentence (no subtitles: captions are added in editing).
+7. DETAILED OBJECTS ARE FLAT SHAPES (always, for every object you draw: organs, food, machines, plants, animals, furniture, icons). Build each object from simple flat filled shapes (circles, ellipses, rounded rectangles, smooth blobs) laid over each other, NO line strokes inside the object (no outlines on parts, no hatching, no fold or vein lines, no texture lines): detail comes only from shapes of different colours. The overall silhouette must match the real object exactly (a brain is brain-shaped, a heart heart-shaped, a cup has its handle), and the colours are a small palette of related tones that fit that object (the brain: pinks at the front, mauves on top, lilacs at the back and bottom). At most one thin edge around the WHOLE silhouette, in a darker tone of the object. Reference: the brain in the code (`brain()`, `BRAIN_DOTS`: overlapping flat circles) and its sheet `SHEETS.focus3`.
+8. PLAN IT FIRST. Before writing code, write the BEATS table with these columns for every beat: time, words, shot type (body 3/4 | front | over-shoulder | two-shot | top-down | focus), shot size (wide | medium | close-up | extreme close-up), camera (zoom from -> to aimed at what, or pan / track / whip), each character's pose and expression, props / place details / visual explainers on screen, on-screen text, transition into the next shot. Also give every beat its on-screen phrase (your own words, see rule 6). Then build exactly that table. Check: zoom or camera move on every beat, no two shots in a row with the same size and angle, at least one front shot per 20 s, a new pose every beat, a focus shot for each subject explained, the props / places / visual explainers each beat needs, no script words on screen except title / numbers / given phrases, and every drawn object made of flat shapes with no inner lines.
 
 REFERENCE IMAGES I ATTACH (every time)
 - A character line-up (people of different ages and genders, whole body, side by side). There are several line-ups and I attach one or more: LINE-UP 1 (light East / Southeast Asian skin tones, black hair, white hair for the elderly; reference cast `CAST`) and LINE-UP 2 (light Asian skin tones, mostly black hair, grey / white for the elderly; reference cast `CAST2`, sheet with FRONT / BACK / 3/4 rows). Use the attached one as the design reference for HOW characters are built: head shape and size, face (white eyes with dark pupils, brows, friendly mouth, soft nose and cheek shading), body proportions per age, posture, simple flat clothes with one shadow side. Match that construction exactly. For the characters in my video, keep that construction and vary the rest freely (see REFERENCE ONLY below). If I attach line-up 2, start from `CAST2`; if line-up 1, from `CAST`; the variation line-ups 3-6 (`CAST3`-`CAST6`: mixed builds, dresses and skirts, a hijab, ponytails and pigtails, patterned clothes, canes) can be used with either; if several are attached, any of those people may appear.
@@ -42,11 +44,13 @@ OUTPUT: ALWAYS AN MP4 (non-negotiable)
 - If I attached an MP3 / WAV / M4A, pass it as the second argument: it is mixed in automatically (my audio on top, the effects ducked under it). Never leave it out and never cut it.
 - 2 EXTRA SECONDS AT THE END: `DURATION` = the time the last on-screen text appears (or the last spoken word, whichever is later) + 2 s. The video is max(DURATION, audio length + 2 s) long, so my audio is never cut off; past DURATION the picture holds its final state (the takeaway stays on screen, characters keep breathing and blinking). Real bug this rule fixes: an added MP3 was longer than the animation and got cut at the end.
 - The renderer also checks every frame and prints PROBLEMS TO FIX (overlapping text, text off screen, text over a face, a character that jumps): fix every one, render again, and only deliver when it prints "checks: no text overlaps, no off-screen text, no character jumps, no page errors".
+- THE PAGE ALWAYS HAS AN "EXPORT MP4" BUTTON (every time, even when you also render with make-mp4.cjs). Include `export-mp4.js` (the MP4 EXPORT BUTTON block below, unchanged) and wire it under the canvas: an audio file input ("Voiceover / music (MP3)") and a button "⬇ Export MP4" -> `MP4X.attach({ canvas, seek: window.seek, duration: window.DURATION, scoreSound: window.scoreSound, button, file, status })`. One click plays the explainer once in real time and downloads `explainer.mp4` with the sound effects AND my uploaded MP3 mixed in (2 s after the audio ends). This is how I get the MP4 when your app can't run node or ffmpeg: never deliver a page without it.
 - If you can't run a shell, still build the HTML exactly as below (with `window.seek`, `window.DURATION`, `window.scoreSound`, `window.QC`, `window.CUTS`) and tell me to run the make-mp4.cjs command.
 
 WHAT TO BUILD
 One self-contained HTML file (the source of the MP4):
 - A 1280x720 canvas, scaled to fit the window with letterboxing, and a small control bar: play/pause, a scrub slider, the current time, a sound on/off toggle, and loop on by default.
+- An "⬇ Export MP4" button with its audio file input (see OUTPUT; `export-mp4.js`).
 - A "Load voiceover" button (a file input, and also accept drag-and-drop of an audio file). Once a file is loaded, the audio is the clock: play, pause and scrub control the audio element, and the canvas draws at audio.currentTime. Without a file, it runs on its own clock.
 - A new `explainer(ctx, W, H_, t)` that tells MY CONTENT in this style. Set DURATION to the last on-screen text / last spoken word plus 2 seconds (see OUTPUT).
 - A `scoreSound(k)` function that schedules the sound effects with the SOUND kit below (see SOUND). Play it in sync from the player: on play call `stopSound = SOUND.live(scoreSound, currentT, { voiceover: true })`, and call `stopSound()` on pause, on seek and when the sound toggle is turned off.
@@ -249,7 +253,7 @@ TIMING FROM THE VOICEOVER
 - First turn my voiceover timing into a BEATS table: one entry per idea, with its start and end time, the words spoken, the shot type (body 3/4, front shot, over-the-shoulder, two-shot, focus on the subject; who is in it), the zoom (from -> to, aimed at what), each character's pose (`POSES`) and expression, and what is on screen (see SHOT RULES at the top). Every animation reads its times from BEATS (and from word times when you need an exact reveal), never from numbers scattered through the code, so a new take only means editing the table.
 - A visual lands on the word it illustrates: a number appears as it is spoken, a label as its name is said, an action (a drop, a catch, a nod) on its verb. It can lead the word by up to 0.2 s, but never lag it.
 - Within a beat, keep building that one idea while the voice explains it, then hold the finished state until the sentence ends instead of rushing ahead. Use pauses in the speech for changes of shot.
-- On-screen text is key words, labels and numbers only. Don't print the sentence being spoken, and no subtitles (captions get added in editing).
+- On-screen text follows SHOT RULES rule 6: only the title, numbers / percentages and phrases I give you come from the script; everything else is your own short relatable phrase or expression tied to the topic and the pose. Never print the sentence being spoken, and no subtitles (captions get added in editing).
 - Start the hook as the first line is spoken, and end 2 seconds after the last text / last word, holding the takeaway (see OUTPUT).
 
 FLOW BETWEEN BEATS
@@ -268,7 +272,7 @@ SOUND (voiceover mode: the narration stays on top, the effects keep the piece fe
 - Medium-true sounds: real-world foley from the kit (click, slap, thud, whoosh, swish, room bed), soft plucks for labels; no chiptune.
 - Sounds of the place and subjects, built from the kit's `k.tone` / `k.noise` when no named sound fits: a park = birdsong (quick high sine sweeps, minor), a street = traffic hum (low brown noise) and footsteps on the walk cycle's foot plants, the ocean = surf (slow pink-noise swells timed with the waves), underwater = muffled low noise and bubble blips, engines = a low sawtooth hum that rises with speed, a heartbeat = two low thuds on the lub-dub, breathing = soft filtered noise in and out. Time them to the motion (a footstep sound on each planted foot, a thud when a wheel hits a bump).
 
-RENDERING: run `node make-mp4.cjs explainer.html [my-audio.mp3] explainer.mp4` (the script is below, after the SOUND KIT; needs Node 18+, Playwright and ffmpeg). It renders every frame, adds the effects (`SOUND.renderOffline(window.scoreSound, total, 48000, { voiceover })`), mixes in my audio with the effects ducked under it, makes the video max(DURATION, audio + 2 s) long, and lists every text overlap, off-screen text, covered face and character jump. Fix them all and render again; deliver the MP4.
+RENDERING (two routes, give me the MP4 by one of them every time: (1) you run make-mp4.cjs and attach the MP4 file; (2) if you can't run it, the page's Export MP4 button makes it, and you tell me: open the page, add the MP3, click Export MP4): run `node make-mp4.cjs explainer.html [my-audio.mp3] explainer.mp4` (the script is below, after the SOUND KIT; needs Node 18+, Playwright and ffmpeg). It renders every frame, adds the effects (`SOUND.renderOffline(window.scoreSound, total, 48000, { voiceover })`), mixes in my audio with the effects ducked under it, makes the video max(DURATION, audio + 2 s) long, and lists every text overlap, off-screen text, covered face and character jump. Fix them all and render again; deliver the MP4.
 
 STYLE CARD
 Name: Golden-Hour Flat Figures
@@ -761,6 +765,64 @@ const probe = (f) => parseFloat(execFileSync('ffprobe', ['-v', 'error', '-show_e
     if (issues.flash.length) console.log('  flash / sudden change at ' + issues.flash.map((x) => x.toFixed(2) + ' s').join(', ') + ' (check the transition there)');
     errs.slice(0, 5).forEach((e) => console.log('  page error: ' + e));
   } else console.log('checks: no text overlaps, no off-screen text, no character jumps, no one-frame flashes, no page errors');
+})();
+```
+
+MP4 EXPORT BUTTON (lib/export-mp4.js; include it in the page, unchanged, and wire the button, see OUTPUT)
+```js
+// export-mp4.js: an "Export MP4" button INSIDE the explainer page, so the video can always be downloaded, even where
+// node / ffmpeg can't run (online code apps, artifact previews, a phone). It plays the explainer once in real time and
+// records the canvas together with the sound effects and the uploaded voiceover / music (MP3, WAV, M4A).
+//   MP4X.attach({ canvas, seek, duration, scoreSound, button, file, status })  wires a button and an <input type=file>
+//   MP4X.record({ canvas, seek, duration, scoreSound, voice: File|null, onProgress })  -> Promise<{ blob, ext, mime }>
+// - Length = max(duration, voice length + 2 s): the audio is never cut, the picture holds its last state.
+// - Sound: the effects are rendered with the same scoreSound (SOUND.renderOffline, voiceover mode when a voice is
+//   loaded) and laid under the voice at 45 % volume; the voice plays at full volume.
+// - Format: MP4 (H.264 + AAC) where the browser can record it (Chrome / Edge 126+, Safari); otherwise WebM, and the
+//   status line says so. Keep the tab visible while it records (browsers slow hidden tabs down).
+(function () {
+  const MIMES = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  const pickMime = () => MIMES.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+  async function record(o) {
+    const fps = o.fps || 30, ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+    let voiceBuf = null;
+    if (o.voice) voiceBuf = await ctx.decodeAudioData(await o.voice.arrayBuffer());
+    const total = Math.max(o.duration, voiceBuf ? voiceBuf.duration + 2 : 0);
+    // effects: rendered offline from the score, so every sound lands on its frame
+    const r = await SOUND.renderOffline(o.scoreSound, total, 48000, { voiceover: !!voiceBuf });
+    const fx = ctx.createBuffer(2, r.frames, 48000), L = fx.getChannelData(0), R = fx.getChannelData(1);
+    for (let i = 0; i < r.frames; i++) { L[i] = r.inter[2 * i]; R[i] = r.inter[2 * i + 1]; }
+    const dest = ctx.createMediaStreamDestination(), mon = ctx.createGain(); mon.gain.value = o.monitor ? 1 : 0; mon.connect(ctx.destination);
+    const play = (buf, gain) => { const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = buf; g.gain.value = gain; s.connect(g); g.connect(dest); g.connect(mon); return s; };
+    const sFx = play(fx, voiceBuf ? 0.45 : 1), sV = voiceBuf ? play(voiceBuf, 1) : null;
+    const stream = new MediaStream([...o.canvas.captureStream(fps).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    const mime = pickMime(), rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8e6, audioBitsPerSecond: 192e3 } : undefined), chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    const done = new Promise((res) => { rec.onstop = res; });
+    o.seek(0); await ctx.resume(); rec.start(250);
+    const T0 = ctx.currentTime + 0.15; sFx.start(T0); if (sV) sV.start(T0);
+    await new Promise((res) => { const tick = () => { const t = ctx.currentTime - T0; o.seek(Math.max(0, Math.min(t, total))); if (o.onProgress) o.onProgress(Math.max(0, t) / total); if (t >= total + 0.1) res(); else requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+    rec.stop(); await done; stream.getTracks().forEach((k) => k.stop()); ctx.close();
+    const type = (mime || 'video/webm').split(';')[0], blob = new Blob(chunks, { type });
+    return { blob, mime: type, ext: type === 'video/mp4' ? 'mp4' : 'webm', total };
+  }
+  function save(res, name) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(res.blob); a.download = (name || 'explainer') + '.' + res.ext;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  }
+  function attach(o) {
+    const st = (s) => { if (o.status) o.status.textContent = s; };
+    o.button.addEventListener('click', async () => {
+      if (o.button.disabled) return; o.button.disabled = true;
+      try {
+        const voice = o.file && o.file.files && o.file.files[0] ? o.file.files[0] : null;
+        st(voice ? 'Recording with ' + voice.name + '…' : 'Recording…');
+        const res = await record({ ...o, voice, onProgress: (u) => st('Recording ' + Math.round(u * 100) + ' %… keep this tab open') });
+        save(res, o.name); st(res.ext === 'mp4' ? 'Saved explainer.mp4' : 'Saved explainer.webm (this browser cannot record MP4; use Chrome / Edge 126+ or Safari for MP4)');
+      } catch (e) { st('Export failed: ' + e.message); } finally { o.button.disabled = false; }
+    });
+  }
+  window.MP4X = { record, save, attach, pickMime };
 })();
 ```
 
@@ -3028,3 +3090,12 @@ function viewsOf(x, t, CS, seed) {
   });
 }
 ```
+
+FINAL CHECKLIST: READ THIS LAST, BEFORE YOU ANSWER (the video is not done until every line is true)
+1. I get an MP4 FILE I can download: either the MP4 you rendered with make-mp4.cjs (attach it), or, if you can't run it, the HTML with the working "⬇ Export MP4" button and one line telling me to open it, add my MP3 and click it. The page has that button in every case.
+2. My uploaded MP3 / WAV / M4A is IN the MP4 (passed to make-mp4.cjs, or loaded in the button's file input), never left out or cut; the video lasts until it ends + 2 s.
+3. The sound effects are in the MP4 (`scoreSound` with the SOUND kit: whooshes on transitions, pops on labels, the event sounds on their frames), under my voice.
+4. SHOT RULES are met: zoom or camera move on every beat, varied shot sizes and angles, front shots, a new pose every beat, a focus shot for every subject explained, props and place details.
+5. Words on screen: only the title, numbers / percentages and phrases I gave come from the script; everything else is your own short relatable phrase tied to the topic and the pose.
+6. Every object is flat shapes with no lines inside, the right silhouette and a fitting palette.
+7. The renderer's checks pass (no overlaps, no off-screen text, no covered faces, no jumps, no flashes).
