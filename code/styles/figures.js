@@ -912,6 +912,96 @@
     return out;
   }
 
+  // ================= TITLE (LOCKED: the same font, size and corner position in EVERY video) =================
+  // Never change TITLE_LOCK. The title text is "<number>. <title>" when the video is part of a numbered list
+  // (titleText(1, 'Finding Reasons to Be Physically Close to You') -> '1. Finding Reasons to Be Physically Close to You'):
+  // a number, a period, a space, then the title. Never '#', never ':'. Without a number it is just the title.
+  //   titleIntro(x, t, o): the big intro title, placed anywhere (o.at, free per video): the number big in amber above,
+  //     then the title WRAPPED onto lines inside o.maxW (never cut, never squeezed, normal word spaces), words pop in one
+  //     by one from o.t0; o.hl = words drawn in amber. o = { text, num, t0, at: [cx, cy], maxW: 760, px: 64, hl: [] }
+  //   titleFly(x, t, o): titleIntro, then between o.fly[0] and o.fly[1] it shrinks and flies into the corner header.
+  //   headerPill(x, text, a): the header, ALWAYS at the same place: pill left edge x 24, centre y 44, Baloo 2 700 28 px.
+  //     Call it on every frame after the fly (it stays there until the end).
+  const TITLE_LOCK = { x: 24, y: 44, px: 28, w: 700, introW: 800, numPx: 92, dot: '#ffc857' };
+  const titleText = (num, s) => (num != null && num !== '' ? num + '. ' : '') + s;
+  function headerPill(x, text, a = 1) {
+    if (a <= 0.01) return; const L = TITLE_LOCK, c = document.createElement('canvas').getContext('2d'); c.font = F(L.w, L.px);
+    const w = c.measureText(text).width + L.px * 1.2 + L.px * 0.9; pill(x, L.x + w / 2, L.y, text, L.px, { a, dot: L.dot, w: L.w, group: 'title' });
+  }
+  function titleLines(x, words, px, maxW) {
+    x.font = F(TITLE_LOCK.introW, px); const sp = x.measureText(' ').width, lines = [[]]; let lw = 0;
+    for (const w of words) { const ww = x.measureText(w).width; if (lines[lines.length - 1].length && lw + sp + ww > maxW) { lines.push([]); lw = 0; } lines[lines.length - 1].push({ w, ww }); lw += (lw ? sp : 0) + ww; }
+    return { lines, sp };
+  }
+  function titleIntro(x, t, o) {
+    const px = o.px || 64, [cx, cy] = o.at || [640, 300], words = o.text.split(/\s+/), hl = (o.hl || []).map((s) => s.toLowerCase());
+    const { lines, sp } = titleLines(x, words, px, o.maxW || 760), lh = px * 1.12, hasN = o.num != null && o.num !== '';
+    const top = cy - ((lines.length - 1) * lh) / 2 + (hasN ? TITLE_LOCK.numPx * 0.45 : 0); let k = 0;
+    if (hasN) { const u = back(seg(t, o.t0 || 0, (o.t0 || 0) + 0.4), 1.6); if (u > 0) { x.save(); x.translate(cx, top - lh * 0.5 - TITLE_LOCK.numPx * 0.6); x.scale(u, u); title(x, String(o.num), 0, 0, TITLE_LOCK.numPx, C.amber, { group: 'title' }); x.restore(); } }
+    lines.forEach((ln, i) => { const tw = ln.reduce((s, q) => s + q.ww, 0) + sp * (ln.length - 1); let wx = cx - tw / 2;
+      for (const q of ln) { const u = back(seg(t, (o.t0 || 0) + 0.15 + k * 0.12, (o.t0 || 0) + 0.55 + k * 0.12), 1.4); k++;
+        if (u > 0) { x.save(); x.translate(wx + q.ww / 2, top + i * lh + (1 - u) * 24); x.scale(u, u); title(x, q.w, 0, 0, px, hl.includes(q.w.toLowerCase().replace(/[^a-z0-9']/g, '')) ? C.amber : C.white, { group: 'title', w: TITLE_LOCK.introW }); x.restore(); }
+        wx += q.ww + sp; } });
+  }
+  function titleFly(x, t, o) {
+    const u = eio(seg(t, o.fly[0], o.fly[1]));
+    if (u < 1) { const [cx, cy] = o.at || [640, 300], k = lerp(1, 0.35, u); x.save(); x.globalAlpha *= 1 - u; x.translate(lerp(cx, 200, u), lerp(cy, TITLE_LOCK.y, u)); x.scale(k, k); x.translate(-cx, -cy); titleIntro(x, t, o); x.restore(); }
+    headerPill(x, titleText(o.num, o.text), seg(u, 0.55, 1));
+  }
+
+  // ================= ACTIVITIES (a body pose for the whole person, not just the arms) =================
+  // act(ch, P, name, o) -> { P, prop }: whole-body activities that make scenes lively. Draw any furniture first, then
+  // person(x, ch, A.P, st), then A.prop(x, J) (the cup / phone / book / remote on top of the hand).
+  //   stand (default) | sit (o.seat m, default 0.46 = a chair; 0.42 = a sofa) | tv (sit + a remote, eyes on the TV) |
+  //   lean (back against a wall, one foot crossed, arms crossed) | drink (a cup at the mouth, o.sip 0..1) |
+  //   phone (looking down at a phone in both hands) | read (an open book) | walk (o.dist metres walked) |
+  //   run (o.dist metres run: longer stride, forward lean, bent arms).
+  // o.pxm = px per metre of the shot (needed for sit / walk / run). Combine with POSES for the arms when it fits
+  // (pose(ch, act(...).P, 'explain')). Pick a different activity for each scene so the video never looks the same.
+  function propCup(x, p, r, ang, col = '#e5383b') { x.save(); x.translate(p[0], p[1]); x.rotate(ang); x.fillStyle = col; rr(x, -0.17 * r, -0.26 * r, 0.34 * r, 0.42 * r, 0.06 * r); x.fill(); x.fillStyle = shade(col, -0.2); x.beginPath(); x.ellipse(0.24 * r, -0.05 * r, 0.1 * r, 0.12 * r, 0, 0, TAU); x.fill(); x.fillStyle = shade(col, 0.3); x.fillRect(-0.17 * r, -0.26 * r, 0.34 * r, 0.07 * r); x.restore(); }
+  function propPhone(x, p, r, ang) { x.save(); x.translate(p[0], p[1]); x.rotate(ang); x.fillStyle = '#1f1b2a'; rr(x, -0.16 * r, -0.28 * r, 0.32 * r, 0.56 * r, 0.06 * r); x.fill(); x.fillStyle = '#5cd6ff'; rr(x, -0.12 * r, -0.23 * r, 0.24 * r, 0.44 * r, 0.03 * r); x.fill(); x.restore(); }
+  function propBook(x, p, r, ang, col = '#3d6fb6') { x.save(); x.translate(p[0], p[1]); x.rotate(ang); x.fillStyle = col; rr(x, -0.55 * r, -0.3 * r, 1.1 * r, 0.6 * r, 0.05 * r); x.fill(); x.fillStyle = '#f6f1e7'; rr(x, -0.5 * r, -0.26 * r, 0.48 * r, 0.52 * r, 0.03 * r); x.fill(); rr(x, 0.02 * r, -0.26 * r, 0.48 * r, 0.52 * r, 0.03 * r); x.fill(); x.fillStyle = '#d8d0c0'; for (let i = 0; i < 4; i++) { x.fillRect(-0.44 * r, (-0.16 + i * 0.1) * r, 0.36 * r, 0.035 * r); x.fillRect(0.08 * r, (-0.16 + i * 0.1) * r, 0.36 * r, 0.035 * r); } x.restore(); }
+  function propRemote(x, p, r, ang) { x.save(); x.translate(p[0], p[1]); x.rotate(ang); x.fillStyle = '#2a2632'; rr(x, -0.06 * r, -0.08 * r, 0.5 * r, 0.16 * r, 0.06 * r); x.fill(); x.fillStyle = '#ff4d5e'; x.beginPath(); x.arc(0.36 * r, 0, 0.035 * r, 0, TAU); x.fill(); x.restore(); }
+  function act(ch, P, name, o = {}) {
+    const A = AGE[ch.age], r = P.h / (A.hd * 2), f = P.f || 1, pxm = o.pxm || 300, hipH = P.h * A.leg, foot = 0.17 * r, thigh = (hipH - foot) / 2, gy = P.gy;
+    const sitP = (seat) => ({ ...P, drop: (hipH - seat * pxm) / r, lean: -0.04, fF: [P.x + f * thigh * 0.98, gy - foot], fB: [P.x + f * (thigh * 0.9 + 0.12 * r), gy - foot] });
+    if (name === 'sit') return { P: { ...sitP(o.seat || 0.46), aF: { a: [0.45, 0.6] }, aB: { a: [0.4, 0.6] } } };
+    if (name === 'tv') { const q = sitP(o.seat || 0.42), J = rig(ch, q), L = J.torso; return { P: { ...q, aF: { to: [J.shF[0] + f * 0.62 * L, J.shF[1] + 0.62 * L] }, hF: { m: 'fist' }, aB: { a: [0.35, 0.5] } }, prop: (x, J2) => propRemote(x, J2.aF.w, J2.r, f > 0 ? -0.2 : Math.PI + 0.2) }; }
+    if (name === 'lean') return { P: pose(ch, { ...P, lean: -0.1, tilt: 0.06, fF: [P.x - f * 0.05 * r, gy - foot], fB: [P.x + f * 0.55 * r, gy - foot] }, 'cross') };
+    if (name === 'drink') { const J = rig(ch, P), sip = o.sip == null ? 1 : o.sip, m = [J.hc[0] + f * 0.75 * J.r, J.hc[1] + 0.85 * J.r], low = [J.shF[0] + f * 0.6 * J.torso, J.shF[1] + 0.6 * J.torso], w = mixP(low, m, eio(sip));
+      return { P: { ...P, aF: { to: w }, hF: { m: 'fist' }, tilt: -0.1 * sip }, prop: (x, J2) => propCup(x, [J2.aF.w[0] + f * 0.12 * J2.r, J2.aF.w[1] - 0.1 * J2.r], J2.r, f * (-0.15 - 0.5 * sip)) }; }
+    if (name === 'phone' || name === 'read') { const J = rig(ch, P), c0 = [J.nb[0] + f * 0.75 * J.r, J.nb[1] + 1.55 * J.r];
+      return { P: { ...P, aF: { to: [c0[0] - f * 0.15 * J.r, c0[1] + 0.1 * J.r] }, hF: { m: 'fist' }, aB: { to: [c0[0] + f * 0.25 * J.r, c0[1] + 0.05 * J.r] }, hB: { m: 'fist' }, tilt: 0.16, lean: 0.03 },
+        prop: (x, J2) => (name === 'phone' ? propPhone(x, c0, J2.r, f * 0.25) : propBook(x, [c0[0], c0[1] - 0.05 * J2.r], J2.r, f * 0.12)) }; }
+    if (name === 'walk') return { P: walkPose(ch, P.x, gy, P.h, f, o.dist || 0, pxm) };
+    if (name === 'run') { const S = hipH / pxm * 2.2, ph = ((o.dist || 0) / S) % 1, legL = hipH;
+      const fp = (p) => { p = ((p % 1) + 1) % 1; const st = 0.45; if (p < st) return [(0.5 - p / st) * S * pxm * 0.55, 0]; const q = (p - st) / (1 - st); return [(-0.5 + q) * S * pxm * 0.55, -Math.sin(q * Math.PI) * 0.3 * legL]; };
+      const fa = fp(ph), fb = fp(ph + 0.5), up = Math.abs(Math.sin(ph * TAU * 2)) * 0.12 * r, sw = Math.sin(ph * TAU) * 0.7;
+      return { P: { ...P, lean: 0.17, drop: 0.12, lift: up, fF: [P.x + f * fa[0], gy - foot + fa[1]], fB: [P.x + f * fb[0], gy - foot + fb[1]], aF: { a: [0.15 - sw, 1.25] }, aB: { a: [0.15 + sw, 1.25] }, hF: { m: 'fist' }, hB: { m: 'fist' } } }; }
+    return { P };
+  }
+
+  // ================= THINKING, SHOWN MANY WAYS (not always the brain) =================
+  // thinkFx(x, t, kind, head, r, o): an effect above / around a thinking character's head (head = [x, y], r = head radius).
+  //   'bulb' (an idea: a light bulb pops on with rays) | 'gears' (working it out: two gears turning) |
+  //   'question' (puzzled: question marks bob up) | 'spark' (a sudden idea: a star burst) | 'dots' (pondering: three
+  //   dots fill one by one) | 'swirl' (confused: a spiral spins). The brain close-up (focusShot) is only ONE option, use
+  //   it at most once per video; mix these with thought bubbles holding a little picture, a whiteboard doodle, a
+  //   character pacing or tapping the chin, a list of options appearing beside them, a lightning bolt, a scale weighing two ideas.
+  function thinkFx(x, t, kind, head, r, o = {}) {
+    const t0 = o.t0 || 0, u = back(seg(t, t0, t0 + 0.4)), X = head[0] + (o.dx || 0.2) * r, Y = head[1] - 1.9 * r; if (u <= 0) return;
+    x.save(); x.translate(X, Y); x.scale(u, u);
+    if (kind === 'bulb') { const on = seg(t, t0 + 0.3, t0 + 0.45); if (on > 0) { x.fillStyle = H.rgba('#fff2a8', 0.35 * on); x.beginPath(); x.arc(0, -0.1 * r, 0.95 * r, 0, TAU); x.fill(); x.fillStyle = '#ffd84a'; for (let i = 0; i < 8; i++) { const a = i * TAU / 8; x.save(); x.rotate(a); rr(x, 0.72 * r, -0.05 * r, 0.3 * r * on, 0.1 * r, 0.05 * r); x.fill(); x.restore(); } }
+      x.fillStyle = on > 0 ? '#ffe46a' : '#f2ead0'; x.beginPath(); x.arc(0, -0.15 * r, 0.5 * r, 0, TAU); x.fill(); x.fillStyle = '#9aa0ae'; rr(x, -0.24 * r, 0.25 * r, 0.48 * r, 0.32 * r, 0.06 * r); x.fill(); x.fillStyle = '#7a8090'; rr(x, -0.24 * r, 0.33 * r, 0.48 * r, 0.07 * r, 0.03 * r); x.fill(); rr(x, -0.24 * r, 0.45 * r, 0.48 * r, 0.07 * r, 0.03 * r); x.fill(); }
+    if (kind === 'gears') { const gear = (gx, gy2, R, n, a, col) => { x.save(); x.translate(gx, gy2); x.rotate(a); x.fillStyle = col; for (let i = 0; i < n; i++) { x.save(); x.rotate(i * TAU / n); rr(x, R * 0.75, -R * 0.16, R * 0.42, R * 0.32, R * 0.08); x.fill(); x.restore(); } x.beginPath(); x.arc(0, 0, R * 0.85, 0, TAU); x.fill(); x.fillStyle = shade(col, -0.25); x.beginPath(); x.arc(0, 0, R * 0.32, 0, TAU); x.fill(); x.restore(); };
+      gear(-0.35 * r, 0, 0.5 * r, 8, t * 2, '#ffc857'); gear(0.45 * r, -0.35 * r, 0.36 * r, 7, -t * 2.6 + 0.2, '#5cd6ff'); }
+    if (kind === 'question') { for (let i = 0; i < 3; i++) { const b = Math.sin(t * 3 + i * 1.7) * 0.12 * r; x.save(); x.translate((i - 1) * 0.65 * r, (i === 1 ? -0.3 * r : 0) + b); x.rotate((i - 1) * 0.25); title(x, '?', 0, 0, r * (i === 1 ? 1.1 : 0.8), [C.amber, C.white, C.cyan][i]); x.restore(); } }
+    if (kind === 'spark') { const p = 1 + 0.08 * Math.sin(t * 9); x.fillStyle = '#ffd84a'; x.beginPath(); for (let i = 0; i < 16; i++) { const a = i * TAU / 16, R = (i % 2 ? 0.32 : 0.8) * r * p; x.lineTo(Math.cos(a) * R, Math.sin(a) * R); } x.closePath(); x.fill(); x.fillStyle = '#fff6c8'; x.beginPath(); x.arc(0, 0, 0.22 * r, 0, TAU); x.fill(); }
+    if (kind === 'dots') { x.fillStyle = 'rgba(246,241,231,0.95)'; rr(x, -0.95 * r, -0.4 * r, 1.9 * r, 0.8 * r, 0.4 * r); x.fill(); for (let i = 0; i < 3; i++) { const on = ((t - t0) * 2.2) % 4 > i + 0.5; x.fillStyle = on ? '#6a3a78' : '#c9b8d6'; x.beginPath(); x.arc((i - 1) * 0.55 * r, 0, 0.16 * r, 0, TAU); x.fill(); } }
+    if (kind === 'swirl') { x.rotate(t * 3); x.fillStyle = '#a07bff'; for (let i = 0; i < 26; i++) { const a = i * 0.45, R = 0.08 * r + i * 0.03 * r; x.beginPath(); x.arc(Math.cos(a) * R, Math.sin(a) * R, 0.07 * r * (1 - i / 34), 0, TAU); x.fill(); } }
+    x.restore();
+  }
+
   // ================= FRONT SHOT (a character turns to the camera and talks to the viewer) =================
   // frontShot(x, t, o): o = { bg (cached canvas, drawn blurred behind), id, st (expr, look, mouth, blink, nod, tilt),
   //   X (head x, default 640), R (head radius, default 120), z (zoom) }. Use it for narration lines spoken to the viewer,
@@ -990,7 +1080,7 @@
     x.restore();
   }
   // the topic title appears where it is spoken, then flies into the top-left corner and stays there as the header
-  const TITLE = 'How fast are you?';
+  const TITLE = 'How fast are you?', TITLE_NUM = null; // a numbered list item would be e.g. TITLE_NUM = 1 -> header '1. How fast are you?'
   function headerBox() { const c = document.createElement('canvas').getContext('2d'); c.font = F(700, 28); const w = c.measureText(TITLE).width + 28 * 1.2 + 28 * 0.9; return { cx: 24 + w / 2, cy: 44, w }; } // the title header sits in the TOP-LEFT corner
   function titleToHeader(x, t) {
     const words = ['How', 'fast', 'are', 'you?'], px = 76;
@@ -2020,6 +2110,29 @@ function viewsOf(x, t, CS, seed) {
       person(x, CAST.zara, PZ, stOf('zara', t, { look: [-1, 0], expr: 'neutral', ph: 2 }), [-0.8, -0.6], C.rimCool);
       labelAt(x, 'background out of focus: not in the script', 640, 50);
     },
+    acts(x, W, H_, t) { // ACTIVITIES (act()): sit on a chair, watch TV on the sofa, lean on a wall, drink, phone, read, walk, run
+      bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const pxm = 168, ch = CAST.kai, gy = [330, 662];
+      const cells = [['sit', 110, 0], ['tv', 420, 0], ['lean', 760, 0], ['drink', 1080, 0], ['phone', 110, 1], ['read', 420, 1], ['walk', 760, 1], ['run', 1080, 1]];
+      for (const [n, X, row] of cells) { const g0 = gy[row], P0 = { x: X, gy: g0, h: hOf(ch, pxm), f: 1, aF: { a: [0.1, 0.25] }, aB: { a: [-0.05, 0.2] }, hF: {}, hB: {} };
+        if (n === 'sit') furniture(x, 'chair', 'side', X + 8, g0, pxm, { col: '#1fa39a' });
+        if (n === 'tv') { furniture(x, 'sofa', 'side', X + 10, g0, pxm, { col: '#c8323a' }); decor(x, 'tv', 'side', X + 175, g0, pxm, { f: -1 }); }
+        if (n === 'lean') { x.fillStyle = '#5a3a5e'; x.fillRect(X - 52, g0 - 300, 26, 300); }
+        const A = act(ch, P0, n, { pxm, dist: t * (n === 'run' ? 3 : 1.2), sip: 0.5 + 0.5 * Math.sin(t * 2) }), J = rig(ch, A.P);
+        floorShadow(x, J, g0); person(x, ch, A.P, { look: n === 'phone' || n === 'read' ? [0.4, 0.8] : [0.4, 0], expr: n === 'run' ? 'focus' : 'happy', blink: 0, hair: { th: 0, th2: 0 } }); if (A.prop) A.prop(x, J);
+        x.font = F(800, 22); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, X, g0 + 26); }
+    },
+    think(x, W, H_, t) { // THINKING WITHOUT THE BRAIN (thinkFx): bulb, gears, question marks, spark, dots, swirl
+      bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const ch = CAST.leo, names = ['bulb', 'gears', 'question', 'spark', 'dots', 'swirl'], P2 = { think: 'think', bulb: 'idea', spark: 'idea', question: 'scratch', dots: 'think', swirl: 'shrug', gears: 'think' };
+      names.forEach((n, i) => { const X = 120 + i * 208, P0 = { x: X, gy: 640, h: 380, f: 1, aF: { a: [0.1, 0.25] }, aB: { a: [-0.05, 0.2] }, hF: {}, hB: {} }, P = pose(ch, P0, P2[n], 1, { t }), J = rig(ch, P);
+        floorShadow(x, J, 640); person(x, ch, P, { look: [0.3, -0.8], expr: n === 'swirl' || n === 'question' ? 'worry' : n === 'bulb' || n === 'spark' ? 'happy' : 'focus', blink: 0, hair: { th: 0, th2: 0 } });
+        thinkFx(x, 2, n, J.hc, J.r, { t0: 0 }); x.font = F(800, 22); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, X, 668); });
+    },
+    titles(x, W, H_, t) { // TITLE (locked): numbered intro title wrapped onto lines, and the fixed top-left header
+      bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0);
+      titleIntro(x, 3, { text: 'Finding Reasons to Be Physically Close to You', num: 1, t0: 0, at: [430, 330], hl: ['physically', 'close'] });
+      headerPill(x, titleText(1, 'Finding Reasons to Be Physically Close to You'));
+      pill(x, 1000, 620, 'header: always here, same font', 24, { dot: C.mint });
+    },
     poses(x, W, H_, t) { // POSE LIBRARY (pose()): 13 poses on one character, so nobody just walks back and forth
       bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const ch = CAST.kai, names = Object.keys(POSES);
       names.forEach((n, i) => { const X = 70 + (i % 7) * 190, gy = i < 7 ? 330 : 660, P0 = { x: X, gy, h: 250, f: 1, lean: 0.02, drop: 0, aF: { a: [0.1, 0.25] }, aB: { a: [-0.05, 0.2] }, hF: {}, hB: {} };
@@ -2215,8 +2328,8 @@ function viewsOf(x, t, CS, seed) {
       let i = SC.length - 1; while (i > 0 && t < SC[i][0]) i--;
       if (i > 0 && t < SC[i][0] + SC[i][3]) trans(x, t, SC[i][0], SC[i][0] + SC[i][3], SC[i][2], Z(SC[i - 1][1], SC[i][0] - 1e-3), Z(SC[i][1]));
       else Z(SC[i][1])(x);
-      if (t < TL.header[1] + 0.05) titleToHeader(x, t); // the title: spoken big, then flies into the top-left header
-      if (t > TL.header[1] - 0.15) header(x, seg(t, TL.header[1] - 0.15, TL.header[1]) * (1 - seg(t, TL.take[0], TL.take[0] + 0.3)));
+      // the title: spoken big (free position), then it flies into the LOCKED top-left header and stays there to the end
+      titleFly(x, t, { text: TITLE, num: TITLE_NUM, t0: TL.titleWords, at: [410, 210], px: 76, hl: ['fast'], fly: TL.header });
       finish(x, W, H_, t);
     },
 
