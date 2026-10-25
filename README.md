@@ -12,8 +12,11 @@ The full Golden-Hour Flat Figures video generator template. It describes flat 2D
   - `make-mp4.cjs`: the MP4 renderer.
   - `page3.html`: the main explainer demo.
   - `page_talk.html`: the conversation demo.
-- `sheets/`: reference sheet images (line-ups 1-6 with front / back / 3/4 views, hands, furniture, lights, decor, trees, grass).
-- `demos/`: example MP4s. These were rendered before the cast was changed to light Asian skin tones, so they still show the old people.
+- `sheets/`: all 39 reference images, numbered like the page: line-ups 1-6 with front / back / 3/4 views, hands, conversation shots, locations, animals, furniture, lights, decor, trees, grass, the body, vehicles, plus the pose library (37), front shot (38) and subject focus (39).
+- `demos/`: example MP4s. `figures-demo.mp4` (24 s) zooms on every beat and has new poses, a brain close-up and a front shot; `talk-demo.mp4` (12 s) is a conversation.
+
+## Shot rules
+The template starts with SHOT RULES that every video must follow: zoom on every beat, mix whole-body, front (`frontShot`) and over-the-shoulder (`otsShot`) shots, a new pose every beat (`pose()`, 13 poses), and a cut-away to a big subject (`focusShot`, e.g. the brain) whenever the script explains a thing.
 
 ## Render the demos
 ```

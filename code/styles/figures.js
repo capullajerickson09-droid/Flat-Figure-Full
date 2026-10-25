@@ -694,9 +694,11 @@
     drop: [3, 7], tDrop: 4.0, SM: 4, timer: 3.85, slowmo: 3.5, cmLabel: 5.15,
     formula: [7, 10.5], fLine: 7.45, fD: 8.05, fG: 8.6, fT: 9.25,
     ages: [10.5, 13.6], aIn: 10.55, aDrop: 11.05, aBest: 12.7,
-    take: [13.6, 17.2], jump: 14.75, line1: 14.2, line2: 14.75,
-    lastText: 15.2, D: 15.2 + 2.0, // ALWAYS 2 s after the last spoken word / last text appears (room for the audio tail)
-    cuts: [[3.0, 3.5], [7.0, 7.5], [10.5, 10.95], [13.6, 14.1]], // scene changes: the only moments a character may change place instantly
+    brain: [13.6, 17.6], bSee: 14.25, bDecide: 15.0, bMove: 15.75, // SUBJECT FOCUS: cut away to a big brain (no people)
+    front: [17.6, 20.6], fTalk: [17.85, 20.2], fText: 18.3,        // FRONT SHOT: Kai turns to the camera, talks to you
+    take: [20.6, 24.2], jump: 21.75, line1: 21.2, line2: 21.75,
+    lastText: 22.2, D: 22.2 + 2.0, // ALWAYS 2 s after the last spoken word / last text appears (room for the audio tail)
+    cuts: [[3.0, 3.5], [7.0, 7.5], [10.5, 10.95], [13.6, 14.1], [17.6, 18.05], [20.6, 21.1]], // scene changes: the only moments a character may change place instantly
   };
   // d = 1/2 g t^2: t = 0.25 s -> 0.306 m. Typical simple visual reaction 0.2-0.3 s, fastest in the 20s, slower in young
   // children and older adults (illustrative typical values).
@@ -875,6 +877,99 @@
     QC.people.push({ id: ls.name, x: lx, y: ly });
   }
 
+  // ================= POSES (characters act: they never just walk back and forth) =================
+  // pose(ch, P, name, u, o): P with the arms / lean / tilt / drop of a named pose. u = 0..1 blends from P's own pose to
+  // the named one (ease it in over ~0.35 s: u = eio(seg(t, t0, t0 + 0.35)) * (1 - eio(seg(t, t1, t1 + 0.35)))).
+  // Chain poses to go from one to the next: pose(ch, pose(ch, P, 'explain', u1), 'point', u2). o.t = time (wave swing).
+  // Pick the pose from what the line MEANS: explaining = explain / present, an idea = idea, wondering = think / scratch,
+  // a problem = worry / shrug, success = cheer / thumbs, greeting = wave, pointing at a thing = point, confident = hips,
+  // waiting or unconvinced = cross. Change pose on every beat (every 2-4 s); walking is only for getting somewhere.
+  const POSES = {
+    explain: (J, L) => ({ aF: { to: [J.shF[0] + J.f * 0.9 * L, J.shF[1] + 0.55 * L] }, hF: { m: 'open', view: 'front' }, aB: { to: [J.shB[0] + J.f * 0.55 * L, J.shB[1] + 0.75 * L] }, lean: 0.04 }),
+    present: (J, L) => ({ aF: { to: [J.shF[0] + J.f * 1.15 * L, J.shF[1] + 0.3 * L] }, hF: { m: 'open', view: 'front' }, aB: { to: [J.shB[0] + J.f * 0.85 * L, J.shB[1] + 0.45 * L] }, hB: { m: 'open', view: 'front' }, lean: -0.03 }),
+    point: (J, L) => ({ aF: { to: [J.shF[0] + J.f * 1.3 * L, J.shF[1] + 0.05 * L] }, hF: { m: 'point' }, lean: 0.05 }),
+    idea: (J, L) => ({ aF: { to: [J.shF[0] - J.f * 0.38 * L, J.shF[1] - 0.78 * L], pref: [-J.f, 0.6] }, hF: { m: 'point' }, tilt: -0.08 }),
+    think: (J, L) => ({ aF: { to: [J.hc[0] + J.f * 0.45 * J.r, J.hc[1] + 1.05 * J.r] }, hF: { m: 'fist' }, aB: { to: [J.nb[0] + J.f * 0.15 * L, J.nb[1] + 0.8 * L] }, tilt: 0.12 }),
+    scratch: (J, L) => ({ aF: { to: [J.hc[0] - J.f * 0.75 * J.r, J.hc[1] - 0.25 * J.r], pref: [-J.f, -0.2] }, hF: { m: 'open' }, tilt: 0.1 }),
+    worry: (J, L) => ({ aF: { to: [J.hc[0] + J.f * 0.35 * J.r, J.hc[1] + 1.25 * J.r] }, hF: { m: 'open', view: 'front' }, aB: { to: [J.hc[0] + J.f * 0.75 * J.r, J.hc[1] + 1.3 * J.r] }, hB: { m: 'open', view: 'front' }, drop: 0.1, lean: -0.04 }),
+    shrug: (J, L) => ({ aF: { to: [J.shF[0] - J.f * 0.45 * L, J.shF[1] + 0.55 * L], pref: [-J.f, 1] }, hF: { m: 'open', view: 'front' }, aB: { to: [J.shB[0] + J.f * 0.55 * L, J.shB[1] + 0.55 * L] }, hB: { m: 'open', view: 'front' }, tilt: 0.14 }),
+    cheer: (J, L) => ({ aF: { to: [J.shF[0] - J.f * 0.25 * L, J.shF[1] - 1.05 * L], pref: [-J.f, 0] }, hF: { m: 'fist' }, aB: { to: [J.shB[0] + J.f * 0.3 * L, J.shB[1] - 1.05 * L], pref: [J.f, 0] }, hB: { m: 'fist' }, tilt: -0.06 }),
+    thumbs: (J, L) => ({ aF: { to: [J.shF[0] + J.f * 0.75 * L, J.shF[1] + 0.35 * L] }, hF: { m: 'thumb' } }),
+    wave: (J, L, o) => ({ aF: { to: [J.shF[0] - J.f * 0.45 * L + Math.sin((o.t || 0) * 7) * 0.2 * L, J.shF[1] - 0.85 * L], pref: [-J.f, 0.6] }, hF: { m: 'open', view: 'front' } }),
+    hips: (J, L) => ({ aF: { to: [J.pel[0] - J.f * 0.55 * J.r, J.pel[1] - 0.15 * J.r], pref: [-J.f, 0] }, hF: { m: 'fist' }, aB: { to: [J.pel[0] + J.f * 0.6 * J.r, J.pel[1] - 0.15 * J.r], pref: [J.f, 0] }, hB: { m: 'fist' }, lean: -0.03 }),
+    cross: (J, L) => ({ aF: { to: [J.nb[0] + J.f * 0.75 * J.r, J.nb[1] + 1.45 * J.r] }, hF: { m: 'fist' }, aB: { to: [J.nb[0] - J.f * 0.45 * J.r, J.nb[1] + 1.35 * J.r] }, hB: { m: 'fist' }, lean: -0.04 }),
+  };
+  function pose(ch, P, name, u = 1, o = {}) {
+    if (!(u > 0) || !POSES[name]) return P;
+    const J = rig(ch, P), q = POSES[name](J, J.torso, o), out = { ...P }, e = eio(cl(u, 0, 1));
+    for (const k of ['aF', 'aB']) if (q[k]) {
+      if (q[k].a) { const tg = rig(ch, { ...P, [k]: q[k] })[k].w; out[k] = { to: mixP(J[k].w, tg, e) }; }
+      else out[k] = { to: mixP(J[k].w, q[k].to, e), pref: q[k].pref };
+    }
+    if (q.hF && e > 0.5) out.hF = { ...(P.hF || {}), ...q.hF };
+    if (q.hB && e > 0.5) out.hB = { ...(P.hB || {}), ...q.hB };
+    for (const k of ['lean', 'tilt', 'drop', 'lift']) if (q[k] != null) out[k] = lerp(P[k] || 0, q[k], e);
+    return out;
+  }
+
+  // ================= FRONT SHOT (a character turns to the camera and talks to the viewer) =================
+  // frontShot(x, t, o): o = { bg (cached canvas, drawn blurred behind), id, st (expr, look, mouth, blink, nod, tilt),
+  //   X (head x, default 640), R (head radius, default 120), z (zoom) }. Use it for narration lines spoken to the viewer,
+  //   for the hook and for the takeaway, mixed with the whole-body 3/4 shots (never a whole video in one angle).
+  const FSB = new WeakMap(); // blurred backgrounds, made once per background canvas
+  function frontShot(x, t, o) {
+    const ch = CH(o.id) || o.ch;
+    if (o.bg) { let b = FSB.get(o.bg); if (!b) { b = blurImg(o.bg, 6); FSB.set(o.bg, b); } x.drawImage(b, -60, -40, 1400, 800); }
+    x.save(); cam(x, o.z || 1, o.X || 640, 330);
+    frontBust(x, ch, o.X || 640, o.Y || 330, o.R || 120, { look: [0, 0.05], breath: Math.sin(t * 1.7) * 0.5 + 0.5, ...o.st });
+    x.restore();
+  }
+
+  // ================= SUBJECT FOCUS (cut away from the people to the thing being explained) =================
+  // When the script explains a subject (the brain or a way of thinking, the heart, the lungs, an eye, a cell, an animal,
+  // a machine), CUT AWAY to it: the characters are NOT in this shot; the subject is drawn BIG in the middle (about 60 % of
+  // the screen height), pops in, labels come in one per beat with a line to the part they name, the camera pushes in on
+  // the part being talked about, then a moving transition goes back to the characters.
+  // focusShot(x, t, o): o = { subj: 'brain' | 'heart' | 'lungs' | 'eyeball' | 'cell' | 'intestines' | fn(x, cx, cy, s, t),
+  //   t0: shot start, s: size (default 280 = ~65 % of the height), bg: [top, bottom] colours,
+  //   labels: [{ text, at: [u, v] point on the subject in units of s (-1..1), side: 'L' | 'R', t: appear time, dot }],
+  //   think: true = thought sparks run along the brain (a 'way of thinking'), push: { at: [u, v], z: 1.35, t0, t1 } }
+  const FOCUSBG = {};
+  function focusShot(x, t, o) {
+    const [c0, c1] = o.bg || ['#2a1f4a', '#6a3a78'], key = c0 + c1;
+    if (!FOCUSBG[key]) { const c = document.createElement('canvas'); c.width = 1280; c.height = 720; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 720); gr.addColorStop(0, c0); gr.addColorStop(1, c1); g.fillStyle = gr; g.fillRect(0, 0, 1280, 720); const rg = H.rng(11); for (let i = 0; i < 26; i++) { g.fillStyle = `rgba(255,220,180,${rg.range(0.04, 0.12)})`; g.beginPath(); g.arc(rg.range(0, 1280), rg.range(0, 720), rg.range(20, 90), 0, TAU); g.fill(); } const rad = g.createRadialGradient(640, 360, 60, 640, 360, 520); rad.addColorStop(0, 'rgba(255,200,150,0.28)'); rad.addColorStop(1, 'rgba(255,200,150,0)'); g.fillStyle = rad; g.fillRect(0, 0, 1280, 720); FOCUSBG[key] = c; }
+    x.drawImage(FOCUSBG[key], 0, 0);
+    const t0 = o.t0 || 0, s = (o.s || 280) * lerp(0.6, 1, back(seg(t, t0, t0 + 0.55))) * (1 + 0.012 * Math.sin(t * 2)), cx = 640, cy = 370 + Math.sin(t * 1.3) * 4;
+    const pu = o.push ? eio(seg(t, o.push.t0, o.push.t1)) : 0, pz = lerp(1, (o.push && o.push.z) || 1.35, pu);
+    const px = o.push ? cx + o.push.at[0] * s : cx, py = o.push ? cy + o.push.at[1] * s : cy;
+    x.save(); x.translate(px, py); x.scale(pz, pz); x.translate(-px, -py);
+    const subj = o.subj || 'brain', a = seg(t, t0, t0 + 0.25); x.globalAlpha = a;
+    if (typeof subj === 'function') subj(x, cx, cy, s, t);
+    else if (subj === 'brain') brain(x, cx, cy, s, 1);
+    else if (subj === 'heart') heart(x, cx, cy, s * 0.8, t);
+    else if (subj === 'lungs') lungs(x, cx, cy, s * 0.85, 0.5 + 0.5 * Math.sin(t * TAU / 4));
+    else if (subj === 'eyeball') eyeball(x, cx, cy, s * 0.8, [Math.sin(t) * 0.3, 0], 0.4);
+    else if (subj === 'intestines') intestines(x, cx, cy, s * 0.9, t);
+    else if (subj === 'cell') cell(x, cx, cy, s * 0.9, t);
+    if (o.think && subj === 'brain') { // thought sparks: glowing dots run between points on the folds, with faint links
+      const rg = H.rng(5), N = 14, pts = []; for (let i = 0; i < N; i++) pts.push([cx + rg.range(-0.62, 0.62) * s, cy + rg.range(-0.62, 0.15) * s]);
+      x.lineCap = 'round';
+      for (let i = 0; i < N; i++) { const p = pts[i], q = pts[(i * 5 + 3) % N], ph = (t * 0.9 + i * 0.37) % 1; x.strokeStyle = 'rgba(255,240,170,0.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(p[0], p[1]); x.lineTo(q[0], q[1]); x.stroke();
+        const sx = lerp(p[0], q[0], ph), sy = lerp(p[1], q[1], ph), gl = x.createRadialGradient(sx, sy, 0, sx, sy, 14); gl.addColorStop(0, 'rgba(255,250,200,0.95)'); gl.addColorStop(1, 'rgba(255,220,120,0)'); x.fillStyle = gl; x.beginPath(); x.arc(sx, sy, 14, 0, TAU); x.fill(); }
+    }
+    x.restore(); x.globalAlpha = 1;
+    // labels: pill at the side, a line from it to the point it names (on the zoomed subject), stacked so they never overlap
+    const L = (o.labels || []).filter((l) => t >= l.t), cnt = { L: 0, R: 0 };
+    for (const l of L) {
+      const side = l.side || (l.at[0] < 0 ? 'L' : 'R'), i = cnt[side]++, u = back(seg(t, l.t, l.t + 0.4));
+      const tx = px + (cx + l.at[0] * s - px) * pz, ty = py + (cy + l.at[1] * s - py) * pz;
+      const lx = side === 'L' ? 210 : 1070, ly = 200 + i * 86;
+      x.save(); x.globalAlpha = cl(u, 0, 1); x.strokeStyle = 'rgba(255,240,225,0.85)'; x.lineWidth = 3; x.beginPath(); x.moveTo(lx + (side === 'L' ? 120 : -120), ly); x.lineTo(lerp(lx + (side === 'L' ? 120 : -120), tx, cl(u, 0, 1)), lerp(ly, ty, cl(u, 0, 1))); x.stroke();
+      x.fillStyle = l.dot || C.amber; x.beginPath(); x.arc(tx, ty, 7 * cl(u, 0, 1), 0, TAU); x.fill(); x.restore();
+      pill(x, lx, ly, l.text, 28, { s: u, dot: l.dot || C.amber });
+    }
+  }
+
   // ================= SCENES (always whole bodies, feet on the floor) =================
   const GY = 690;
   function cam(x, z, cx = 640, cy = 420) { x.translate(cx, cy); x.scale(z, z); x.translate(-cx, -cy); }
@@ -886,8 +981,9 @@
     const st = stOf('kai', t, { look: thinking ? [0.6, -0.8] : [-0.3, 0], expr: thinking ? 'focus' : t > TL.think[1] ? 'happy' : 'neutral', mouth: t > 0.3 && t < 1.4 ? 0.4 * Math.abs(Math.sin(t * 9)) : 0 });
     const wv = eio(seg(t, TL.wave[0], TL.wave[0] + 0.35)) * (1 - eio(seg(t, TL.wave[1], TL.wave[1] + 0.4)));
     const sw = Math.sin((t - TL.wave[0]) * 7) * 0.35 * wv; // waving swing at the elbow
-    const P = { x: 820, gy: GY, h: hOf(CAST.kai, PXM) * 1.05, f: -1, lean: st.s.x * 0.12, tilt: 0.05, drop: breath(t), aF: { a: [lerp(0.1, Math.PI + 0.32, wv), lerp(0.2, -0.35, wv) + sw] }, hF: {}, aB: { a: [-0.05, 0.2] } };
-    const J = rig(CAST.kai, P); floorShadow(x, J, GY); person(x, CAST.kai, P, st, [-0.8, -0.6]);
+    const P = { x: 820, gy: GY, h: hOf(CAST.kai, PXM) * 0.9, f: -1, lean: st.s.x * 0.12, tilt: 0.05, drop: breath(t), aF: { a: [lerp(0.1, Math.PI + 0.32, wv), lerp(0.2, -0.35, wv) + sw] }, hF: {}, aB: { a: [-0.05, 0.2] } };
+    const P2 = pose(CAST.kai, P, 'think', eio(seg(t, TL.think[0], TL.think[0] + 0.35)) * (1 - eio(seg(t, TL.think[1], TL.think[1] + 0.35)))); // a new pose on the new beat
+    const J = rig(CAST.kai, P2); floorShadow(x, J, GY); person(x, CAST.kai, P2, st, [-0.8, -0.6]);
     // she wonders: the thought bubble's dots start at her head and the last one overlaps the bubble
     const tp = seg(t, TL.think[0], TL.think[0] + 0.6) * (1 - seg(t, TL.think[1], TL.think[1] + 0.15));
     if (tp > 0) thoughtBubble(x, [J.hc[0] + J.r * 0.8, J.hc[1] - J.r * 0.9], J.hc[0] + J.r * 3.5, J.hc[1] - J.r * 0.35, '0.1 s? 1 s?', 32, tp);
@@ -956,7 +1052,8 @@
     const lookAt = t < TL.fT ? [1, -0.4] : [0.2, 0.1];
     const st = stOf('kai', t, { look: lookAt, expr: t > TL.fT + 0.1 ? 'happy' : 'focus', ph: 1.1 });
     const pt = eio(seg(t, 7.2, 7.6)), tgt = [lerp(400, 585, pt) + (t > TL.fT ? 8 * Math.sin((t - TL.fT) * 6) * Math.exp(-(t - TL.fT) * 2) : 0), lerp(470, 330, pt)];
-    const P = { x: 300, gy: GY, h: hOf(CAST.kai, PXM) * 1.05, f: 1, lean: 0.05 + st.s.x * 0.12, drop: breath(t, 2), aF: { to: tgt }, hF: { m: 'point' }, aB: { a: [-0.05, 0.25] } };
+    const P0 = { x: 300, gy: GY, h: hOf(CAST.kai, PXM) * 1.05, f: 1, lean: 0.05 + st.s.x * 0.12, drop: breath(t, 2), aF: { to: tgt }, hF: { m: 'point' }, aB: { a: [-0.05, 0.25] } };
+    const P = pose(CAST.kai, P0, 'present', eio(seg(t, TL.fT + 0.2, TL.fT + 0.55))); // points while it writes, then presents the answer
     const J = rig(CAST.kai, P); floorShadow(x, J, GY); person(x, CAST.kai, P, st);
     const ca = eo(seg(t, 7.05, 7.4));
     x.save(); x.globalAlpha = ca; x.translate((1 - ca) * 80, 0);
@@ -1002,7 +1099,20 @@
     const best = back(seg(t, TL.aBest, TL.aBest + 0.35));
     if (best > 0) pill(x, 70 + 2.5 * 176 + 22, 36, 'fastest in your 20s', 28, { s: best, dot: C.mint });
   }
-  // 5 TAKEAWAY: Kai jumps for joy: anticipation crouch, ballistic flight at g, landing absorbed by the knees
+  // 5 SUBJECT FOCUS: the brain explains the delay. No people in this shot: the subject is BIG, labels come one per beat
+  // with a line to the part they name, thought sparks run through it, the camera pushes in on the part being named.
+  function exBrain(x, W, H_, t) {
+    focusShot(x, t, { subj: 'brain', t0: TL.brain[0], think: true, push: { at: [0.05, -0.55], z: 1.3, t0: TL.bMove, t1: TL.bMove + 1.0 },
+      labels: [{ text: 'Eyes see it', at: [-0.62, -0.12], side: 'L', t: TL.bSee }, { text: 'Brain decides', at: [0.5, -0.32], side: 'R', t: TL.bDecide, dot: C.mint }, { text: 'Hand moves', at: [0.05, -0.62], side: 'L', t: TL.bMove, dot: C.coral }] });
+  }
+  // 6 FRONT SHOT: back to the character, now facing the camera and talking to the viewer (background blurred), zoom in
+  function exFront(x, W, H_, t) {
+    const talk = t > TL.fTalk[0] && t < TL.fTalk[1];
+    frontShot(x, t, { bg: roomFloor('room', C.warm, 3, GY), id: 'kai', z: 1 + 0.14 * eio(seg(t, TL.front[0], TL.front[0] + 1.6)), X: 560,
+      st: { expr: 'happy', look: [0, 0.05], mouth: talk ? 0.45 * Math.abs(Math.sin(t * 9)) : 0, blink: blink(t, 3), nod: 0.05 * Math.sin(t * 3) * (talk ? 1 : 0), tilt: 0.04 * Math.sin(t * 1.3) } });
+    pill(x, 1010, 330, 'Practice = faster', 34, { s: back(seg(t, TL.fText, TL.fText + 0.4)), dot: C.mint });
+  }
+  // 7 TAKEAWAY: Kai jumps for joy: anticipation crouch, ballistic flight at g, landing absorbed by the knees
   function exTake(x, W, H_, t) {
     const z = 1 + 0.03 * eo(seg(t, TL.take[0], TL.take[1]));
     x.save(); cam(x, z, 640, 690); bg(x, roomFloor('room', C.warm, 3, GY), 1, 0, 0);
@@ -1886,6 +1996,20 @@ function viewsOf(x, t, CS, seed) {
       person(x, CAST.zara, PZ, stOf('zara', t, { look: [-1, 0], expr: 'neutral', ph: 2 }), [-0.8, -0.6], C.rimCool);
       labelAt(x, 'background out of focus: not in the script', 640, 50);
     },
+    poses(x, W, H_, t) { // POSE LIBRARY (pose()): 13 poses on one character, so nobody just walks back and forth
+      bg(x, roomFloor('room4', C.warm, 5, GY4), 1, 0, 0); const ch = CAST.kai, names = Object.keys(POSES);
+      names.forEach((n, i) => { const X = 70 + (i % 7) * 190, gy = i < 7 ? 330 : 660, P0 = { x: X, gy, h: 250, f: 1, lean: 0.02, drop: 0, aF: { a: [0.1, 0.25] }, aB: { a: [-0.05, 0.2] }, hF: {}, hB: {} };
+        const P = pose(ch, P0, n, 1, { t }), J = rig(ch, P); floorShadow(x, J, gy);
+        person(x, ch, P, { look: n === 'idea' || n === 'think' ? [0.3, -0.8] : [0.3, 0], expr: { cheer: 'happy', thumbs: 'happy', wave: 'happy', worry: 'worry', shrug: 'worry', think: 'focus', scratch: 'focus', idea: 'happy' }[n] || 'neutral', blink: 0, hair: { th: 0, th2: 0 } });
+        x.font = F(800, 22); x.textAlign = 'center'; x.fillStyle = C.white; x.fillText(n, X, gy + 26); });
+    },
+    front(x, W, H_, t) { // FRONT SHOT: the character turns to the camera and talks to the viewer (background blurred)
+      frontShot(x, t, { bg: roomFloor('room4', C.warm, 5, GY4), id: 'kai', st: { expr: 'happy', mouth: 0.4, blink: 0 } });
+      pill(x, 1040, 120, 'Front shot: talking to you', 26, { dot: C.amber });
+    },
+    focus3(x, W, H_, t) { // SUBJECT FOCUS: no people, a BIG brain, thought sparks, labels with lines, push-in on a part
+      focusShot(x, 3, { subj: 'brain', t0: 0, think: true, labels: [{ text: 'Thinking', at: [0.15, -0.45], side: 'R', t: 0 }, { text: 'Memory', at: [0.0, 0.25], side: 'L', t: 0 }, { text: 'Balance', at: [-0.45, 0.4], side: 'L', t: 0 }] });
+    },
     focus2(x, W, H_, t) { // the cars ARE the subject: road and traffic sharp, only the buildings stay soft
       const gy = 610, P = 210, M = stageModel(gy, P), keep = stageModel(gy + 40, P).y(M.dp + ST.kerb + ST.road + ST.pave) - 2;
       x.drawImage(backdrop('night', gy, { blur: 12, pxm: P, keep }), -60, -40, 1400, 800);
@@ -1920,9 +2044,11 @@ function viewsOf(x, t, CS, seed) {
 
   // CAMERA ZOOM (immersive): every beat slowly pushes in or pulls out (alternating), and key moments get a short punch.
   // Amounts stay small (3-7 %) so text never leaves the safe area; the header and the finish are not zoomed.
-  const ZOOM = [[0, 3, 'in', 0.07], [3, 7, 'out', 0.06], [7, 10.5, 'in', 0.06], [10.5, 13.6, 'out', 0.03], [13.6, 17.2, 'in', 0.06]];
+  const ZOOM = [[0, 3, 'in', 0.13, 820, 620], [3, 7, 'out', 0.05, 300, 240], [7, 10.5, 'in', 0.09, 480, 420], [10.5, 13.6, 'out', 0.06, 330, 330], [13.6, 17.6, 'in', 0.05, 640, 360], [17.6, 20.6, 'in', 0.04, 560, 330], [20.6, 24.2, 'in', 0.08, 900, 560]]; // zoom on EVERY beat: [start, end, in|out, amount, aim x, aim y]
+  function camAim(t) { for (const q of ZOOM) if (t >= q[0] && t < q[1]) return [q[4] || 640, q[5] || 390]; const q = ZOOM[ZOOM.length - 1]; return [q[4] || 640, q[5] || 390]; }
   function camZoom(t) {
     let z = 1; for (const [a, b, d, k] of ZOOM) if (t >= a && t < b) { const u = eio(seg(t, a, b)); z = d === 'in' ? 1 + k * u : 1 + k * (1 - u); }
+    if (t >= ZOOM[ZOOM.length - 1][1]) z = 1 + ZOOM[ZOOM.length - 1][3];
     for (const h of [CATCH, TL.fT, TL.jump + 0.45]) if (t > h) z += 0.03 * Math.exp(-(t - h) * 5) * Math.sin(Math.min(1, (t - h) * 12) * Math.PI * 0.5);
     return z;
   }
@@ -2059,9 +2185,9 @@ function viewsOf(x, t, CS, seed) {
       t = Math.min(t, TL.D + 60); // past the end the last scene simply holds (the renderer may run longer for a long voiceover)
       // each scene keeps its OWN zoom: during a transition the outgoing scene holds the zoom it ended on (zt), so its size
       // never jumps when the next zoom beat starts
-      const Z = (fn, zt = t) => (g) => { const z = camZoom(zt); g.save(); g.translate(640, 390); g.scale(z, z); g.translate(-640, -390); fn(g, W, H_, t); g.restore(); };
+      const Z = (fn, zt = t) => (g) => { const z = camZoom(zt), [ax, ay] = camAim(zt); g.save(); g.translate(ax, ay); g.scale(z, z); g.translate(-ax, -ay); fn(g, W, H_, t); g.restore(); };
       // scene changes are moving transitions (wipe, fade, push, zoom-through), each listed in TL.cuts
-      const SC = [[0, exHook], [TL.drop[0], exDrop, 'wipe', 0.5], [TL.formula[0], exFormula, 'fade', 0.5], [TL.ages[0], exAges, 'push', 0.45], [TL.take[0], exTake, 'zoom', 0.5]];
+      const SC = [[0, exHook], [TL.drop[0], exDrop, 'wipe', 0.5], [TL.formula[0], exFormula, 'fade', 0.5], [TL.ages[0], exAges, 'push', 0.45], [TL.brain[0], exBrain, 'zoom', 0.5], [TL.front[0], exFront, 'push', 0.45], [TL.take[0], exTake, 'fade', 0.5]];
       let i = SC.length - 1; while (i > 0 && t < SC[i][0]) i--;
       if (i > 0 && t < SC[i][0] + SC[i][3]) trans(x, t, SC[i][0], SC[i][0] + SC[i][3], SC[i][2], Z(SC[i - 1][1], SC[i][0] - 1e-3), Z(SC[i][1]));
       else Z(SC[i][1])(x);
@@ -2095,6 +2221,11 @@ function viewsOf(x, t, CS, seed) {
       k.play('click', TL.aDrop, { f: 1600, gain: 0.5 }); // the clamps open
       FACT.ages.forEach(([, , rt], i) => { k.play('slap', TL.aDrop + rt * 4, { gain: 0.5, pan: -0.75 + i * 0.25 }); pluck(TL.aDrop + rt * 4 + 0.05, ['C5', 'D5', 'G5', 'A5', 'E5', 'D5', 'C5'][i % 7], 0.45, -0.75 + i * 0.25); });
       k.play('success', TL.aBest + 0.1, { gain: 0.6, pan: 0.2 });
+      k.play('whoosh', TL.brain[0], { dur: 0.45, gain: 0.6 });                                   // cut away to the brain
+      [[TL.bSee, 'C5'], [TL.bDecide, 'E5'], [TL.bMove, 'G5']].forEach(([tt, n], i) => { k.play('pop', peak(tt, tt + 0.4), { f: 520 + i * 90, gain: 0.5, pan: i === 0 ? -0.5 : 0.5 }); pluck(tt + 0.08, n, 0.7, i === 0 ? -0.5 : 0.5); });
+      k.play('sparkle', TL.brain[0] + 0.6, { n: 5, gain: 0.4, minor: true }); k.play('ding', TL.bDecide + 0.05, { f: 'A5', gain: 0.6 });
+      k.play('whoosh', TL.front[0], { dur: 0.4, gain: 0.5, minor: true });                        // back to the character, front shot
+      k.play('pop', peak(TL.fText, TL.fText + 0.4), { f: 640, gain: 0.5, pan: 0.4 }); pluck(TL.fText + 0.08, 'A4', 0.8, 0.4);
       k.play('whoosh', TL.take[0], { dur: 0.4, gain: 0.5, minor: true });
       const fl = (2 * Math.sqrt(2 * G * 0.22)) / G; k.play('swish', TL.jump, { gain: 0.5, minor: true }); k.play('thud', TL.jump + fl, { f: 110, gain: 0.55 }); // jump take-off and landing (flight time from g)
       pluck(peak(TL.line1, TL.line1 + 0.4), 'F4', 0.9);
