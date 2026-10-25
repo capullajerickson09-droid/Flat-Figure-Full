@@ -18,7 +18,7 @@ Real problem these rules fix: a video came out static: no zoom, no front view, t
    - FRONT SHOT: the character faces the camera and talks to the viewer, head and shoulders, background blurred (`frontShot`, sheet `SHEETS.front`). Use it for the hook, for lines spoken to the viewer and for the takeaway. At least one front shot in every 20 s.
    - CONVERSATION: when two characters talk, over-the-shoulder front portrait of the speaker with the listener's back in the foreground (`otsShot`), mixed with side two-shots (see CONVERSATION SHOTS).
 3. CHARACTERS ACT. Walking is only for getting somewhere (a few seconds, then they stop). On every beat each character in the shot takes a pose that fits the words, eased in over ~0.35 s: `pose(ch, P, name, u)` with 13 poses (sheet `SHEETS.poses`): explain, present, point, idea, think, scratch, worry, shrug, cheer, thumbs, wave, hips, cross. Plus physical actions the story calls for (jump, catch, sit, drop, hold a prop). Each pose has the expression to match (see FACIAL EXPRESSIONS). A character doing the same thing for more than one beat is wrong.
-4. FOCUS ON THE SUBJECT. When the script explains a THING (the brain or a way of thinking, the heart, the lungs, an eye, a cell, an animal, a machine, a place), CUT AWAY to it with a moving transition: `focusShot` (sheet `SHEETS.focus3`). The characters are NOT in that shot; the subject is BIG in the middle of the screen (about 65 % of the height; the brain is a cloud of overlapping flat circles, pink at the front and lilac at the back, no fold lines), labels pop in one per beat with a line to the part they name, the camera pushes in on the part being talked about (`push`), and for thinking / ideas / the mind the brain shows thought sparks (`think: true`). When the explanation is done, a moving transition goes BACK to the characters, who react (e.g. `idea` pose with `happy`, or `think` with `focus`). Use one focus shot per subject the script explains.
+4. FOCUS ON THE SUBJECT. When the script explains a THING (the brain or a way of thinking, the heart, the lungs, an eye, a cell, an animal, a machine, a place), CUT AWAY to it with a moving transition: `focusShot` (sheet `SHEETS.focus3`). The characters are NOT in that shot; the subject is BIG in the middle of the screen (about 65 % of the height; the brain is flat lobe shapes in pinks and lilacs with wavy fold bands and highlights, no outline and no lines), labels pop in one per beat with a line to the part they name, the camera pushes in on the part being talked about (`push`), and for thinking / ideas / the mind the brain shows thought sparks (`think: true`). When the explanation is done, a moving transition goes BACK to the characters, who react (e.g. `idea` pose with `happy`, or `think` with `focus`). Use one focus shot per subject the script explains.
 5. BE CREATIVE, NOT STATIC. Think like a director of a popular explainer channel, not a slideshow: every shot should be worth watching on its own.
    - Vary the SHOT SIZE from shot to shot: wide (the whole place and everyone in it), medium (one or two people, knees up or whole body bigger), close-up (a face reacting, a hand doing something), extreme close-up (an object, a number, a detail). Never the same shot size and angle twice in a row.
    - Vary the ANGLE within the flat 2D style: 3/4 view, side view (profile, walking past), front (talking to me), from behind / over the shoulder, top-down (a table, a map, a plate, a desk seen from above), a low framing (the character big against the sky) or a high framing (small in a wide place). Flip which side characters face between shots so it doesn't feel repeated.
@@ -27,7 +27,7 @@ Real problem these rules fix: a video came out static: no zoom, no front view, t
    - SHOW, DON'T TELL: turn every idea into something visible: a metaphor (a battery draining for tiredness, a traffic jam of thoughts, a growing plant for learning), a demonstration (a character tries it), or a comparison (two characters side by side, one doing it right).
    - Background life: wind in trees and hair, people or cars passing in the far background (blurred if not in the script), floating dust, blinking, breathing. No frame is ever frozen.
 6. WORDS ON SCREEN ARE YOUR OWN, NOT THE SCRIPT'S. Apart from (a) the title, (b) numbers, percentages and units (25 %, 0.25 s, 31 cm) and (c) phrases I give you to show word for word, do NOT put any words from my script on screen. Instead, for every scene write short RELATABLE phrases and expressions that fit what is happening and how the character is posing: a reaction ("Wait, what?!", "Oh no…", "Got it!"), a thought ("Why so slow?"), a feeling ("So tired…"), a cheer ("Nailed it!"), a friendly label for a part or a step ("Eyes spot it", "Brain decides"). Analyse the topic and the beat first so every phrase is clearly connected to the topic and to the pose / expression it sits beside (an `idea` pose gets an "Aha!"-type phrase, a `worry` pose a worried one). Keep them short (1-4 words), varied (never the same phrase twice), and never a copy or a close paraphrase of the spoken sentence (no subtitles: captions are added in editing).
-7. DETAILED OBJECTS ARE FLAT SHAPES (always, for every object you draw: organs, food, machines, plants, animals, furniture, icons). Build each object from simple flat filled shapes (circles, ellipses, rounded rectangles, smooth blobs) laid over each other, NO line strokes inside the object (no outlines on parts, no hatching, no fold or vein lines, no texture lines): detail comes only from shapes of different colours. The overall silhouette must match the real object exactly (a brain is brain-shaped, a heart heart-shaped, a cup has its handle), and the colours are a small palette of related tones that fit that object (the brain: pinks at the front, mauves on top, lilacs at the back and bottom). At most one thin edge around the WHOLE silhouette, in a darker tone of the object. Reference: the brain in the code (`brain()`, `BRAIN_DOTS`: overlapping flat circles) and its sheet `SHEETS.focus3`.
+7. DETAILED OBJECTS ARE FLAT SHAPES (always, for every object you draw: organs, food, machines, plants, animals, furniture, icons). Build each object from simple flat filled shapes (circles, ellipses, rounded rectangles, smooth blobs) laid over each other, NO line strokes inside the object (no outlines on parts, no hatching, no fold or vein lines, no texture lines): detail comes only from shapes of different colours. The overall silhouette must match the real object exactly (a brain is brain-shaped, a heart heart-shaped, a cup has its handle), and the colours are a small palette of related tones that fit that object (the brain: pinks at the front, mauves on top, lilacs at the back and bottom). NO outline at all, not even around the silhouette: shapes meet shapes. Give the inside real structure with shapes, not one kind of blob repeated: the main parts as smooth flat areas in related tones, the details (folds, panels, seeds, scales, petals) as rounded bands and blobs a shade lighter or darker, and a few soft highlight ovals. Reference: the brain in the code (`brain()`: lobes as flat blobs, wavy fold bands, highlights, a banded cerebellum, no outline) and its sheet `SHEETS.focus3`.
 8. PLAN IT FIRST. Before writing code, write the BEATS table with these columns for every beat: time, words, shot type (body 3/4 | front | over-shoulder | two-shot | top-down | focus), shot size (wide | medium | close-up | extreme close-up), camera (zoom from -> to aimed at what, or pan / track / whip), each character's pose and expression, props / place details / visual explainers on screen, on-screen text, transition into the next shot. Also give every beat its on-screen phrase (your own words, see rule 6). Then build exactly that table. Check: zoom or camera move on every beat, no two shots in a row with the same size and angle, at least one front shot per 20 s, a new pose every beat, a focus shot for each subject explained, the props / places / visual explainers each beat needs, no script words on screen except title / numbers / given phrases, and every drawn object made of flat shapes with no inner lines.
 
 REFERENCE IMAGES I ATTACH (every time)
@@ -2293,10 +2293,12 @@ REFERENCE STYLE SOURCE (styles/figures.js; W/H_ are always 1280x720)
     }
     x.restore();
   }
-  // brain (side view, front to the LEFT): a cloud of overlapping FLAT circles, pink at the front, lilac at the back and
-  // along the bottom lobe, no fold lines and no shading; one thin plum edge around the whole shape; a rounded pink stem.
+  // brain (side view, front to the LEFT), FLAT SHAPES ONLY, NO OUTLINE: the silhouette is a cloud of circles
+  // (BRAIN_DOTS, gaps filled by a core ellipse); inside it the lobes are smooth flat blobs in related tones (front lobe
+  // pink, top mauve, back lilac, bottom lobe lavender), the folds are wavy rounded bands a shade lighter or darker, plus a
+  // few soft highlight ovals; a banded cerebellum and a rounded stem underneath. No line strokes anywhere.
   // Drawn once at 360 px and cached; f = -1 faces right. Parts in units of s (centre 0,0): front ~(-0.5,-0.3),
-  // top ~(0,-0.5), back ~(0.62,-0.1), bottom lobe ~(0.05,0.17), cerebellum ~(0.37,0.37), stem ~(0.2,0.55).
+  // top ~(0.15,-0.45), back ~(0.62,-0.1), bottom lobe ~(0.15,0.2), cerebellum ~(0.37,0.38), stem ~(0.2,0.55).
   const BRAIN_DOTS = [
       [0.369, 0.369, 0.170, '#d58cbd'],
       [0.057, 0.327, 0.091, '#e299c9'],
@@ -2319,12 +2321,31 @@ REFERENCE STYLE SOURCE (styles/figures.js; W/H_ are always 1280x720)
   let BRAINC = null;
   function brainArt(S) {
     const c = document.createElement('canvas'); c.width = c.height = Math.ceil(S * 2.2); const g = c.getContext('2d'); g.translate(c.width / 2, c.height / 2); g.scale(S, S);
-    const EDGE = '#7a3a5e', EW = 0.014, stem = (w, col) => { g.strokeStyle = col; g.lineCap = 'round'; g.lineWidth = w; g.beginPath(); g.moveTo(0.12, 0.36); g.lineTo(0.25, 0.58); g.stroke(); };
-    // the edge: the stem and every circle grown by EW in the edge colour, then the shapes on top in their own colours
-    const core = (grow) => { g.beginPath(); g.ellipse(0.03, -0.02, 0.64 + grow, 0.36 + grow, 0, 0, TAU); g.fill(); }; // fills the gaps between the circles
-    stem(0.115 + EW * 2, EDGE); g.fillStyle = EDGE; core(EW); for (const [x, y, r] of BRAIN_DOTS) { g.beginPath(); g.arc(x, y, r + EW, 0, TAU); g.fill(); }
-    stem(0.115, '#e9a2cd'); g.fillStyle = '#eaa6cf'; core(0);
-    for (const [x, y, r, col] of BRAIN_DOTS) { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); }
+    const rg = H.rng(23);
+    const blob = (P) => { const p = new Path2D(), n = P.length; p.moveTo(P[0][0], P[0][1]); // smooth closed shape through the points (Catmull-Rom)
+      for (let i = 0; i < n; i++) { const a = P[(i - 1 + n) % n], b0 = P[i], c0 = P[(i + 1) % n], d0 = P[(i + 2) % n]; p.bezierCurveTo(b0[0] + (c0[0] - a[0]) / 6, b0[1] + (c0[1] - a[1]) / 6, c0[0] - (d0[0] - b0[0]) / 6, c0[1] - (d0[1] - b0[1]) / 6, c0[0], c0[1]); } p.closePath(); return p; };
+    const band = (pts, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length - 1; i++) g.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2); g.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]); g.stroke(); }; // a filled rounded band (a shape, no outline)
+    const wave = (x0, y0, len, ang, amp, k) => { const P = []; for (let i = 0; i <= k; i++) { const u = i / k; P.push([x0 + Math.cos(ang) * len * u - Math.sin(ang) * Math.sin(u * Math.PI * 2.2 + x0 * 9) * amp, y0 + Math.sin(ang) * len * u + Math.cos(ang) * Math.sin(u * Math.PI * 2.2 + x0 * 9) * amp]); } return P; };
+    const folds = (path, base, n, box, ang) => { g.save(); g.clip(path); // folds: lighter and darker wavy bands + highlight ovals, kept inside the lobe
+      for (let i = 0; i < n; i++) { const x0 = rg.range(box[0], box[2]), y0 = rg.range(box[1], box[3]), a0 = ang + rg.range(-0.5, 0.5), L = rg.range(0.22, 0.38);
+        band(wave(x0, y0 + 0.04, L, a0, 0.035, 12), 0.065, shade(base, -0.12)); band(wave(x0, y0, L, a0, 0.035, 12), 0.058, shade(base, 0.24)); }
+      g.fillStyle = 'rgba(255,240,248,0.55)'; for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(rg.range(box[0], box[2]), rg.range(box[1], (box[1] + box[3]) / 2), 0.05, 0.022, rg.range(-0.6, 0.2), 0, TAU); g.fill(); }
+      g.restore(); };
+    // stem and cerebellum (behind the cerebrum)
+    band([[0.12, 0.34], [0.19, 0.47], [0.26, 0.6]], 0.12, '#e7a0cc'); band([[0.15, 0.4], [0.22, 0.56]], 0.035, '#f2bddd');
+    const cb = new Path2D(); cb.ellipse(0.42, 0.4, 0.24, 0.16, 0.08, 0, TAU); g.fillStyle = '#d58cbd'; g.fill(cb);
+    g.save(); g.clip(cb); for (let i = 0; i < 4; i++) { const cr = new Path2D(); cr.ellipse(0.42, 0.3 + i * 0.07, 0.26, 0.04, 0.08, 0, TAU); g.fillStyle = i % 2 ? '#c97bb0' : '#e4a3cf'; g.fill(cr); } g.restore();
+    // silhouette: circles + a core, filled with the base tone; everything else is clipped to it
+    const sil = new Path2D(); sil.ellipse(0.03, -0.02, 0.64, 0.36, 0, 0, TAU); for (const [x0, y0, r] of BRAIN_DOTS.filter((d) => d[1] < 0.3 || d[0] < 0.25)) { sil.moveTo(x0 + r, y0); sil.arc(x0, y0, r, 0, TAU); }
+    g.fillStyle = '#eda7cf'; g.fill(sil); g.save(); g.clip(sil);
+    const LOBES = [ // [points, colour, fold box, fold angle]
+      [[[-0.9, 0.12], [-0.88, -0.38], [-0.5, -0.72], [-0.05, -0.74], [0.06, -0.52], [-0.06, -0.34], [0.04, -0.16], [-0.12, 0.0], [-0.42, 0.14]], '#f7a9bb', [-0.78, -0.62, -0.08, 0.05], 0.9],
+      [[[-0.06, -0.78], [0.38, -0.72], [0.6, -0.5], [0.5, -0.28], [0.56, -0.1], [0.2, -0.04], [0.06, -0.16], [-0.04, -0.34], [0.06, -0.52]], '#e19dd6', [-0.02, -0.64, 0.5, -0.1], -0.3],
+      [[[0.5, -0.5], [0.92, -0.3], [0.95, 0.12], [0.68, 0.26], [0.47, 0.02], [0.44, -0.26]], '#caa2e6', [0.5, -0.4, 0.82, 0.1], 1.4],
+      [[[-0.42, 0.12], [-0.08, -0.02], [0.32, 0.0], [0.66, 0.12], [0.7, 0.3], [0.3, 0.42], [-0.18, 0.38], [-0.44, 0.28]], '#d7a6ea', [-0.35, 0.06, 0.6, 0.32], 0.05],
+    ];
+    for (const [P, col, box, ang] of LOBES) { const lp = blob(P); g.fillStyle = col; g.fill(lp); folds(lp, col, 10, box, ang); }
+    g.restore();
     return c;
   }
   function brain(x, cx, cy, s, f = 1) {
@@ -2862,7 +2883,7 @@ function viewsOf(x, t, CS, seed) {
       pill(x, 1040, 120, 'Front shot: talking to you', 26, { dot: C.amber });
     },
     focus3(x, W, H_, t) { // SUBJECT FOCUS: no people, a BIG brain, thought sparks, labels with lines, push-in on a part
-      focusShot(x, 3, { subj: 'brain', t0: 0, think: true, labels: [{ text: 'Thinking', at: [-0.5, -0.3], side: 'L', y: 230, t: 0 }, { text: 'Memory', at: [0.08, 0.18], side: 'R', y: 330, t: 0 }, { text: 'Balance', at: [0.37, 0.37], side: 'R', y: 470, t: 0 }] });
+      focusShot(x, 3, { subj: 'brain', t0: 0, think: true, labels: [{ text: 'Thinking', at: [-0.5, -0.3], side: 'L', y: 230, t: 0 }, { text: 'Memory', at: [0.08, 0.18], side: 'R', y: 330, t: 0 }, { text: 'Balance', at: [0.46, 0.45], side: 'R', y: 470, t: 0 }] });
     },
     focus2(x, W, H_, t) { // the cars ARE the subject: road and traffic sharp, only the buildings stay soft
       const gy = 610, P = 210, M = stageModel(gy, P), keep = stageModel(gy + 40, P).y(M.dp + ST.kerb + ST.road + ST.pave) - 2;
